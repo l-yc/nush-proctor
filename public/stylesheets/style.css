@@ -1,0 +1,54 @@
+html, body {
+    margin: 0;
+    height: 100%;
+    border: none;
+}
+
+* {
+    border: solid 2px red;
+}
+
+.title {
+    text-align: center;
+}
+
+.invert {
+    transform: rotateY(180deg);
+    -webkit-transform:rotateY(180deg); /* Safari and Chrome */
+    -moz-transform:rotateY(180deg); /* Firefox */
+}
+
+video {
+    object-fit: scale-down;
+}
+
+#video-controls {
+    display: flex;
+    justify-content: center;
+}
+
+#video-container {
+    display: flex;
+    flex-flow: row nowrap;
+}
+
+#camera, #screen {
+    flex: 1;
+}
+
+#frills-container {
+    display: flex;
+    flex-flow: column nowrap;
+}
+
+#frills-container > #photo-gallery {
+    flex: 1;
+    display: flex;
+    flex-flow: row nowrap;
+    overflow: auto;
+    //overflow-x: scroll;
+}
+
+#frills-container > #photo-gallery > canvas {
+    height: 100px;
+}
