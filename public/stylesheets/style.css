@@ -1,14 +1,6 @@
-html, body {
-    margin: 0;
-    height: 100%;
-    border: none;
-}
+@import url("base.css");
 
-* {
-    border: solid 2px red;
-}
-
-.title {
+#message {
     text-align: center;
 }
 
@@ -16,10 +8,6 @@ html, body {
     transform: rotateY(180deg);
     -webkit-transform:rotateY(180deg); /* Safari and Chrome */
     -moz-transform:rotateY(180deg); /* Firefox */
-}
-
-video {
-    object-fit: scale-down;
 }
 
 #video-controls {

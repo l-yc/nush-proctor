@@ -1,69 +1,76 @@
 'use strict';
-
 console.clear();
 
+/* Networking Setup */
+const socket = io({
+    autoConnect: false
+});
 const { RTCPeerConnection, RTCSessionDescription } = window;
-const socket = io();
 //const configuration = {'iceServers': [{'urls': 'stun:localhost:8080'}]}
-const configuration = {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]}
-let peerConnection = new RTCPeerConnection(configuration);
+const configuration = {'iceServers': [
+    {'urls': 'stun:stun.l.google.com:19302'}
+    //{'urls': 'stun:stun1.l.google.com:19302'}
+]}
 
-let localStream = null;
+let peerConnection = new RTCPeerConnection(configuration);
+let localStreams = [];
+let connectButton = document.querySelector('#connect');
+connectButton.addEventListener('click', event => {
+    socket.open();
+});
+
+socket.on('connect', async () => {
+    console.log('[OK] Connected to the signaling server.');
+    console.log('[..] Registering username...');
+    socket.emit('login', {  // TODO: this needs to be secured for practical use
+        username: username
+    });
+});
 
 async function call() {
-    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+    localStreams.forEach(stream => stream.getTracks().forEach(track => peerConnection.addTrack(track, stream)));
     console.log('added all tracks');
 
     const offer = await peerConnection.createOffer();
+    console.log('[OK] Created offer.');
     await peerConnection.setLocalDescription(new RTCSessionDescription(offer));
-    console.log('making offer ' + JSON.stringify(offer));
+    console.log('[OK] Local description set.');
 
-    socket.emit('offer stream', {
+    socket.emit('submit offer', {
         offer: offer,
-        from: socket.id
+        to: null
     });
+    console.log('[..] Submitting offer.');
 
-    socket.on("youre accepted", async data => {
-        console.log('owo i am accepted ');
+    socket.on('offer accepted', async data => {
+        console.log('[OK] Offer accepted.');
         await peerConnection.setRemoteDescription(
             new RTCSessionDescription(data.answer)
         );
-        console.log('yay set');
-
-        /*if (!isAlreadyCalling) {
-            callUser(data.socket);
-            isAlreadyCalling = true;
-        }*/
+        console.log('[OK] Remote description set.');
     });
 
-    socket.on('heres the candidate', data => {
-        console.log('got data ' + JSON.stringify(data));
+    socket.on('candidate available', data => {
+        console.log('[OK] Received an ICE Candidate: ' + JSON.stringify(data));
         if (data.candidate === null) return;
         peerConnection.addIceCandidate(data.candidate);
     });
 
     peerConnection.onicecandidate = ({candidate}) => {
-        console.log('got candidate ' + JSON.stringify(candidate));
-        socket.emit('sending candidate', { 
+        console.log('[OK] Registered an ICE Candidate: ' + JSON.stringify(candidate));
+        socket.emit('submit candidate', { 
             candidate: candidate,
             to: null
         });
     };
 
     peerConnection.ontrack = function({ streams: [stream] }) {
-        console.log('bleh ' + stream);
+        console.log('[OK] Received stream.');
         const remoteVideo = document.getElementById("remote-video");
         if (remoteVideo) {
             remoteVideo.srcObject = stream;
         }
     };
-
-    //// Listen for local ICE candidates on the local RTCPeerConnection
-    //peerConnection.addEventListener('icecandidate', event => {
-    //    if (event.candidate) {
-    //        signalingChannel.send({'new-ice-candidate': event.candidate});
-    //    }
-    //});
 
     // Listen for connectionstatechange on the local RTCPeerConnection
     peerConnection.addEventListener('connectionstatechange', event => {
@@ -80,15 +87,17 @@ async function stop() {
     peerConnection.close();
 }
 
+/* UI Code */
+let username = window.prompt('username');
+
 (async function() {
+    let message = document.querySelector('#message');
+    message.innerHTML = `Logged in as <strong>${username}</strong>`;
+
     const callButton = document.getElementById('call');
     callButton.addEventListener('click', call);
     const stopButton = document.getElementById('stop');
     stopButton.addEventListener('click', stop);
-
-    socket.on('connect', async () => {
-        console.log('ready');
-    });
 
     // Grab elements, create settings, etc.
 
@@ -106,7 +115,7 @@ async function stop() {
                 cameraVideo.srcObject = stream;
                 cameraVideo.play();
 
-                localStream = stream;
+                localStreams.push(stream);
             }).catch(err => {
                 console.log('error: ' + err);
             });
@@ -120,6 +129,8 @@ async function stop() {
             navigator.mediaDevices.getDisplayMedia({ video: true }).then(function(stream) {
                 screenVideo.srcObject = stream
                 screenVideo.play();
+
+                localStreams.push(stream);
             }).catch(err => {
                 console.log(err);
             });
@@ -149,62 +160,3 @@ async function stop() {
     }
 
 })();
-
-/*this.io = io();
-navigator.mediaDevices.getUserMedia(
-    { video: true, audio: true },
-    stream => {
-        const localVideo = document.getElementById("local-video");
-        if (localVideo) {
-            localVideo.srcObject = stream;
-        }
-    },
-    error => {
-        console.warn(error.message);
-    }
-);
-
-this.io.on("connection", socket => {
-    const existingSocket = this.activeSockets.find(
-        existingSocket => existingSocket === socket.id
-    );
-
-    if (!existingSocket) {
-        this.activeSockets.push(socket.id);
-
-        socket.emit("update-user-list", {
-            users: this.activeSockets.filter(
-                existingSocket => existingSocket !== socket.id
-            )
-        });
-
-        socket.broadcast.emit("update-user-list", {
-            users: [socket.id]
-        });
-    }
-
-    socket.on("update-user-list", ({ users }) => {
-        console.log(users);
-        //updateUserList(users);
-    });
-
-    socket.on("remove-user", ({ socketId }) => {
-        const elToRemove = document.getElementById(socketId);
-
-        if (elToRemove) {
-            elToRemove.remove();
-        }
-    });
-});
-
-const { RTCPeerConnection, RTCSessionDescription } = window;
-
-async function callUser(socketId) {
-    const offer = await peerConnection.createOffer();
-    await peerConnection.setLocalDescription(new RTCSessionDescription(offer));
-
-    socket.emit("call-user", {
-        offer,
-        to: socketId
-    });
-}*/

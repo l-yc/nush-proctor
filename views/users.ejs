@@ -3,16 +3,22 @@
     <head>
         <meta charset="utf-8">
         <title>seer</title>
-        <link rel="stylesheet" href="/stylesheets/style.css">
+        <link rel="stylesheet" href="/stylesheets/users.css">
     </head>
     <body>
         <!-- page content -->
-        <div id="content">
+        <div id="seer">
+            <h1 class="title">Seer</h1>
+            <p id="message"></p>
+            <ul id="online-users" class="list">
+            </ul>
+            <div id="video-controls">
+                <button id="connect">Connect</button>
+            </div>
+            <div id="video-container">
+                <!--<video class="remote-video" autoplay></video>-->
+            </div>
         </div>
-        <div id="content2">
-        </div>
-        <button id="clickme">click me</button>
-        <video id="remote-video" autoplay></video>
 
         <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
         <script src='/socket.io/socket.io.js'></script>
