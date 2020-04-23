@@ -9,8 +9,7 @@ module.exports = function(middleware) {
   });
 
   router.get('/login', function(req, res, next) {
-    console.log(req.flash('message'));
-    res.render('login', { title: 'Express', error: req.flash('message') });
+    res.render('login', { title: 'Express', message: req.flash('message') });
   });
 
   router.post('/login', middleware.passport.authenticate('login', {
