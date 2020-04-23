@@ -133,3 +133,13 @@ Sessionx.vim
 tags
 # Persistent undo
 [._]*.un~
+
+##### Other Stuff
+# Certs
+*.key
+*.pem
+*.srl
+*.crt
+*.csr
+*.cnf
+*.ext
