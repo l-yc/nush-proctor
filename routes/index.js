@@ -3,29 +3,29 @@ var router = express.Router();
 
 module.exports = function(middleware) {
   console.log(middleware.passport);
-  /* GET home page. */
   router.get('/', function(req, res, next) {
-    res.render('index', { title: 'Express' });
+    res.render('proctor', { title: global.config.appName });
   });
 
   router.get('/login', function(req, res, next) {
-    res.render('login', { title: 'Express', message: req.flash('message') });
+    res.render('login', { title: global.config.appName, message: req.flash('message') });
   });
 
   router.post('/login', middleware.passport.authenticate('login', {
-    successRedirect: '/users',
+    successRedirect: '/seer',
     failureRedirect: '/login',
     failureFlash: true
   }));
 
   router.post('/signup', middleware.passport.authenticate('signup', {
-    successRedirect: '/users',
+    successRedirect: '/seer',
     failureRedirect: '/login',
     failureFlash: true
   }));
 
-  //router.get('/demo', function(req, res, next) {
-  //  res.render('demo', { title: 'Express' });
-  //});
+  router.get('/seer', middleware.checkAuthenticated, function(req, res, next) {
+    res.render('seer', { title: global.config.appName });
+  });
+
   return router;
 };

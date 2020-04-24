@@ -7,7 +7,6 @@ var debug = require('debug')('nush-proctor:models:passport.js');
 
 function login(req, username, password, done) {
   // check in mongo if a user with username exists or not
-  console.log('hello');
   User.findOne({ 'username' :  username },
     function(err, user) {
       // In case of any error, return using the done method
@@ -15,15 +14,15 @@ function login(req, username, password, done) {
         return done(err);
       // Username does not exist, log error & redirect back
       if (!user){
-        console.log('User Not Found with username '+username);
+        console.log('User not found for username:', username);
         return done(null, false,
-          req.flash('message', 'User Not found.'));
+          req.flash('message', 'User not found.'));
       }
       // User exists but wrong password, log the error
       if (!UserHelper.isValidPassword(user, password)){
         console.log('Invalid Password');
         return done(null, false,
-          req.flash('message', 'Invalid Password'));
+          req.flash('message', 'Invalid password.'));
       }
 
       //if (!user.isEnabled){
@@ -43,14 +42,14 @@ function signup(req, username, password, done) {
   User.findOne({'username':username},function(err, user) {
     // In case of any error return
     if (err){
-      console.log('Error in SignUp: '+err);
+      console.log('Error in signing up: ', err);
       return done(err);
     }
     // already exists
     if (user) {
       console.log('User already exists');
       return done(null, false,
-        req.flash('message','User Already Exists'));
+        req.flash('message','User already exists.'));
     } else {
       // if there is no user with that email
       // create the user
@@ -67,7 +66,7 @@ function signup(req, username, password, done) {
       // save the user
       newUser.save(function(err) {
         if (err) {
-          console.log('Error in Saving user: '+err);
+          console.log('Error in saving user:', err);
           throw err;
         }
         console.log('Successfully registered ' + newUser.username);

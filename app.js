@@ -66,9 +66,7 @@ mongoose.connect(dbConfig.url, { useNewUrlParser: true, useUnifiedTopology: true
   debug('Setting up middleware');
   var middleware = require('./routes/middleware')(passport, acl);
   var indexRouter = require('./routes/index')(middleware);
-  var usersRouter = require('./routes/users')(middleware);
   app.use('/', indexRouter);
-  app.use('/users', usersRouter);
 
   // catch 404 and forward to error handler
   app.use(function(req, res, next) {
