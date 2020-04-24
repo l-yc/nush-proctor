@@ -2,29 +2,25 @@ module.exports = function(server) {
   const io = require('socket.io')(server);
 
   let online = {};
-  let offers = {};
   let candidates = {};
-  let seer = {};
+  let seer = null;  // TODO: allow more than 1 seer
   io.on('connection', socket => {
     console.log(socket.id + ' connected');
-    //online.push(socket.id);
-    //io.emit('online users', JSON.stringify(online));
 
-    socket.on('login', function(data) { // register username
-      online[socket.id] = data.username;  // TODO: probably should have uniqueness check?
-      io.sockets.emit('online users', JSON.stringify(online));
+    socket.on('login', function(data) { // register user
+      if (data.secret === 'AWTX2fBlP+6CDYamKfPZ+A==') {
+        seer = socket.id;   // TODO: need to have a more legit way to identify seer
+      } else {
+        online[socket.id] = data.username;  // TODO: probably should have uniqueness check?
+      }
+      io.sockets.emit('online users', online);
     });
 
     socket.on('disconnect', () => {
       //online.remove(socket.id);
       delete online[socket.id];
-      delete offers[socket.id];
       delete candidates[socket.id];
-    });
-
-    socket.on('whos online', function() { // queries
-      seer = socket.id;   // TODO: need to have a more legit way to identify seer
-      io.to(socket.id).emit('online users', JSON.stringify(online));
+      io.sockets.emit('online users', online);
     });
 
     socket.on('submit offer', function(data) {
@@ -35,12 +31,10 @@ module.exports = function(server) {
         offer: data.offer,
         from: socket.id
       });
-      offers[socket.id] = data;
     });
 
     socket.on('accept offer', function(data) {
       console.log('Offer accepted');
-      delete offers[data.to]; // each offer can only be accepted once
       socket.to(data.to).emit('offer accepted', {
         from: socket.id,
         answer: data.answer
