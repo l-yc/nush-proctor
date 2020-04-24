@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>seer</title>
+    <link rel="stylesheet" href="/stylesheets/seer.css">
+  </head>
+  <body>
+    <!-- page content -->
+    <div>
+      <h1 class="title"><%= title %></h1>
+      <p id="message"></p>
+      <div id="online-users-container">
+        Online:
+        <ul id="online-users" class="list">
+        </ul>
+      </div>
+      <div id="video-controls">
+        <button id="connect">Connect</button>
+      </div>
+      <div id="video-container">
+        <!--<video class="remote-video" autoplay></video>-->
+      </div>
+    </div>
+
+    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+    <script src='/socket.io/socket.io.js'></script>
+    <script src="/javascripts/seer.js"></script>
+  </body>
+</html>
+
