@@ -2,7 +2,6 @@ var express = require('express');
 var router = express.Router();
 
 module.exports = function(middleware) {
-  console.log(middleware.passport);
   router.get('/', function(req, res, next) {
     res.render('proctor', { title: global.config.appName });
   });
