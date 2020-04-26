@@ -1,11 +1,14 @@
 # nush-proctor
 
 ## TODO
-[ ] - Write script to auto create first admin user
+[x] - Write script to auto create first admin user (init.js)
 [ ] - Write init.sh
 [ ] - Installation script?
 [ ] - Check through Dependencies
 [ ] - Add detailed installation instructions
+
+## Known Issues
+* Disconnection detection does not work for Seer on Chrome
 
 ## Dependencies
 * MongoDB ([install](https://docs.mongodb.com/manual/administration/install-community/))
