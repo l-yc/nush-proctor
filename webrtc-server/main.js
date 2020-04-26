@@ -10,6 +10,7 @@ module.exports = function(server) {
     socket.on('login', function(data) { // register user
       if (data.secret === 'AWTX2fBlP+6CDYamKfPZ+A==') {
         seer = socket.id;   // TODO: need to have a more legit way to identify seer
+        console.log('Seer registered: ' + seer);
       } else {
         online[socket.id] = data.username;  // TODO: probably should have uniqueness check?
       }
@@ -24,10 +25,10 @@ module.exports = function(server) {
     });
 
     socket.on('submit offer', function(data) {
-      console.log('Offer received: ' + data);
+      console.log('Offer received: %o', data);
       if (data.to == null) data.to = seer;
-      console.log('forwarding to ' + data.to);
-      io.to(data.to).emit('available offer', {
+      console.log('Forwarding offer to ' + data.to);
+      socket.to(data.to).emit('available offer', {
         offer: data.offer,
         from: socket.id
       });
@@ -36,15 +37,16 @@ module.exports = function(server) {
     socket.on('accept offer', function(data) {
       console.log('Offer accepted');
       socket.to(data.to).emit('offer accepted', {
-        from: socket.id,
-        answer: data.answer
+        answer: data.answer,
+        from: socket.id
       });
     });
 
     socket.on('submit candidate', function(data) {
-      //console.log('Candidate received: ' + JSON.stringify(data.candidate));
+      console.log('Candidate received from %s: %o', socket.id, data.candidate);
       if (data.to == null) data.to = seer;
-      io.to(data.to).emit('candidate available', {
+      console.log('Sending candidate to ' + data.to);
+      socket.to(data.to).emit('candidate available', {
         candidate: data.candidate,
         from: socket.id
       });

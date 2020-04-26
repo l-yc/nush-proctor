@@ -3,11 +3,19 @@ console.clear();
 
 /* Peer Connection */
 const { RTCPeerConnection, RTCSessionDescription } = window;
-const configuration = {'iceServers': [
-  {'urls': 'stun:stun.l.google.com:19302'}
+const configuration = {iceServers: [
+  //{'urls': 'stun:stun.l.google.com:19302'},
   //{'urls': 'stun:stun1.l.google.com:19302'}
-  //{'urls': 'stun:localhost:8080'}
-]}
+  { urls:['stun:mystun.sytes.net:3478'] },
+  {
+      urls:['turn:mystun.sytes.net:3478'],
+      credential:'test',
+      username:'test'
+  }
+],
+    iceTransportPolicy: 'relay',
+    iceCandidatePoolSize: 0
+};
 
 class Student {
   constructor(username) {
@@ -18,9 +26,11 @@ class Student {
     this.peerConnection.onicecandidate = ({candidate}) => {
       console.log('[PROCTOR] Obtained an ICE Candidate: %o.', candidate);
       if (candidate === null) return; // useless
+      if (candidate.candidate === '') return;
+      console.log('sending candidate to ' + socket.id);
       socket.emit('submit candidate', { 
         candidate: candidate,
-        from: socket.id
+        to: socket.id
       });
     };
 
@@ -95,6 +105,7 @@ socket.on('connect', () => {
   socket.emit('login', {
     secret: 'AWTX2fBlP+6CDYamKfPZ+A=='
   });
+  console.log('[PROCTOR] Registered as seer.');
 });
 
 let connectButton = document.querySelector('#connect');

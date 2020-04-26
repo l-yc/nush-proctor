@@ -18,11 +18,19 @@ socket.on('connect', event => {
 
 /* WebRTC Setup */
 const { RTCPeerConnection, RTCSessionDescription } = window;
-const configuration = {'iceServers': [
-  {'urls': 'stun:stun.l.google.com:19302'}
+const configuration = {iceServers: [
+  //{'urls': 'stun:stun.l.google.com:19302'},
   //{'urls': 'stun:stun1.l.google.com:19302'}
-  //{'urls': 'stun:localhost:8080'}
-]}
+  { urls:['stun:mystun.sytes.net:3478'] },
+  {
+      urls:['turn:mystun.sytes.net:3478'],
+      credential:'test',
+      username:'test'
+  }
+],
+    iceTransportPolicy: 'relay',
+    iceCandidatePoolSize: 0
+};
 
 let peerConnection = null;
 
@@ -32,6 +40,7 @@ function createNewConnection() {
   peerConnection.onicecandidate = ({candidate}) => {
     console.log('[PROCTOR] Obtained an ICE Candidate %o.', candidate);
     if (candidate === null) return; // useless
+    if (candidate.candidate === '') return;
     socket.emit('submit candidate', { 
       candidate: candidate,
       to: null
@@ -96,7 +105,7 @@ async function call() {
   });
 
   socket.on('candidate available', data => {
-    console.log('[PROCTOR] Received an ICE Candidate: ' + JSON.stringify(data));
+    console.log('[PROCTOR] Received an ICE Candidate: %o', data);
     if (data.candidate === null) return;
     peerConnection.addIceCandidate(data.candidate);
   }); 
