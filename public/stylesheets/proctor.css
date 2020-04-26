@@ -1,42 +1,29 @@
 @import url("base.css");
 
 #message {
-    text-align: center;
+  text-align: center;
+}
+
+#connection-state {
+  text-align: center;
 }
 
 .invert {
-    transform: rotateY(180deg);
-    -webkit-transform:rotateY(180deg); /* Safari and Chrome */
-    -moz-transform:rotateY(180deg); /* Firefox */
+  transform: rotateY(180deg);
+  -webkit-transform:rotateY(180deg); /* Safari and Chrome */
+  -moz-transform:rotateY(180deg); /* Firefox */
 }
 
 #video-controls {
-    display: flex;
-    justify-content: center;
+  display: flex;
+  justify-content: center;
 }
 
 #video-container {
-    display: flex;
-    flex-flow: row nowrap;
+  display: flex;
+  flex-flow: row wrap;
 }
 
 #camera, #screen {
-    flex: 1;
-}
-
-#frills-container {
-    display: flex;
-    flex-flow: column nowrap;
-}
-
-#frills-container > #photo-gallery {
-    flex: 1;
-    display: flex;
-    flex-flow: row nowrap;
-    overflow: auto;
-    //overflow-x: scroll;
-}
-
-#frills-container > #photo-gallery > canvas {
-    height: 100px;
+  //flex: 1;
 }
