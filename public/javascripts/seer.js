@@ -88,7 +88,7 @@ class Student {
 
   destroy() {
     let box = this.DOMContainer.parentNode;
-    console.log(box);
+    //console.log(box);
     if (box) box.parentNode.removeChild(box);
     delete this;
   }
@@ -139,7 +139,6 @@ socket.on('candidate available', data => {
 socket.on('available offer', async (data) => {
   console.log('[PROCTOR] Received an offer %o.', data);
 
-  //if (students.has(data.from)) {}
   let s = new Student(data.from, onlineUsers[data.from]); // get username
   students[data.from] = s;
 

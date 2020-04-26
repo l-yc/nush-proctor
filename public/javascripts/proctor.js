@@ -60,6 +60,8 @@ function createNewConnection() {
     console.log('[PROCTOR] Connection has changed: %o', event);
     console.log('[PROCTOR] Connection state:', peerConnection.connectionState);
     // new, connecting, connected, disconnected, failed or closed
+    let connectionStateIndicator = document.querySelector('#connection-state');
+    connectionStateIndicator.innerHTML = `Status: <strong>${peerConnection.connectionState}</strong>`;
     if (peerConnection.connectionState === 'connected') {
       // Peers connected!
       console.log('[PROCTOR] Connected to remote stream.');
