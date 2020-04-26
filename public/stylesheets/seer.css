@@ -7,29 +7,31 @@
 
 #video-container {
   display: flex;
-  flex-flow: row nowrap;
+  max-width: 100%;
+  flex-flow: row wrap;
+  justify-content: center;
 }
 
 .student {
   display: flex;
+  max-width: 100%;
   flex-flow: column nowrap;
 }
 
 .student > p {
   text-align: center;
-  max-width: 100%;
+  flex: 1;
 }
 
 .remote-video-container {
   display: flex;
+  max-width: 100%;
   flex-flow: row nowrap;
 }
 
 .remote-video {
-  width: 45vw;
-  //flex: 1;
-  //flex-basis: 45%; /* ~ 50% */
-  //max-width: 50%;
+  width: 49vw;
+  height: 28.125vw;
 }
 
 #online-users-container {

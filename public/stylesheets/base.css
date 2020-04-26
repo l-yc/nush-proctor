@@ -1,20 +1,23 @@
 @import url('https://fonts.googleapis.com/css2?family=Rubik&display=swap');
 
 html, body {
-    margin: 0;
-    height: 100%;
-    border: none;
-    font-family: 'Rubik', 'sans-serif';
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  border: none;
+  font-family: 'Rubik', 'sans-serif';
 }
 
 * {
-    //border: solid 2px red;
+  /*border: solid 2px red;*/
 }
 
 .title {
-    text-align: center;
+  text-align: center;
 }
 
 video {
-    object-fit: scale-down;
+  //object-fit: contain;
+  width: 49vw;
+  height: 28.125vw;
 }
