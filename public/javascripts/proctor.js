@@ -85,7 +85,10 @@ async function call() {
 
   localStreams.forEach(stream => stream.getTracks().forEach(track => peerConnection.addTrack(track, stream)));
 
-  const offer = await peerConnection.createOffer();
+  const offer = await peerConnection.createOffer({
+    //offerToReceiveVideo: true,
+    //offerToReceiveAudio: true
+  });
   console.log('[PROCTOR] Created offer.');
   await peerConnection.setLocalDescription(new RTCSessionDescription(offer));
   console.log('[PROCTOR] Local description set.');
