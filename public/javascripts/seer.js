@@ -18,7 +18,8 @@ const configuration = {iceServers: [
 };
 
 class Student {
-  constructor(username) {
+  constructor(from, username) {
+    this.from = from;
     this.username = username;
 
     this.peerConnection = new RTCPeerConnection(configuration);
@@ -30,7 +31,7 @@ class Student {
       console.log('sending candidate to ' + socket.id);
       socket.emit('submit candidate', { 
         candidate: candidate,
-        to: socket.id
+        to: from
       });
     };
 
@@ -139,13 +140,16 @@ socket.on('available offer', async (data) => {
   console.log('[PROCTOR] Received an offer %o.', data);
 
   //if (students.has(data.from)) {}
-  let s = new Student(onlineUsers[data.from]); // get username
+  let s = new Student(data.from, onlineUsers[data.from]); // get username
   students[data.from] = s;
 
   await s.peerConnection.setRemoteDescription(
     new RTCSessionDescription(data.offer)
   );
-  const answer = await s.peerConnection.createAnswer();
+  const answer = await s.peerConnection.createAnswer({
+    //offerToReceiveVideo: true,
+    //offerToReceiveAudio: true
+  });
   await s.peerConnection.setLocalDescription(new RTCSessionDescription(answer));
 
   socket.emit('accept offer', {
