@@ -16,6 +16,8 @@
   display: flex;
   max-width: 100%;
   flex-flow: column nowrap;
+  box-shadow: 1px 1px 4px 0 #ccc;
+  border-radius: 2px;
 }
 
 .student > p {
@@ -26,7 +28,7 @@
 .remote-video-container {
   display: flex;
   max-width: 100%;
-  flex-flow: row nowrap;
+  flex-flow: column nowrap;
 }
 
 .remote-video {
