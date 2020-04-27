@@ -15,9 +15,3 @@ html, body {
 .title {
   text-align: center;
 }
-
-video {
-  //object-fit: contain;
-  width: 49vw;
-  height: 28.125vw;
-}
