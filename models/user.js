@@ -7,7 +7,7 @@ var userSchema = new mongoose.Schema({
 
 var User = mongoose.model('User', userSchema);
 
-var bCrypt = require('bcrypt');
+var bCrypt = require('bcryptjs');
 module.exports = {
   model: User,
   // Compares hash of passwords
