@@ -12,7 +12,7 @@ var app = express();
 
 // db setup
 var User = require('./models/user').model;
-var dbConfig = require('./models/db');
+var dbConfig = global.config.db;
 var mongoose = require('mongoose');
 mongoose.connect(dbConfig.url, { useNewUrlParser: true, useUnifiedTopology: true }, function(err, connection) {
   if (err) {
