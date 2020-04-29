@@ -2,7 +2,7 @@ var UserHelper = require('./models/user.js');
 var User = UserHelper.model;
 
 // db setup
-var dbConfig = require('./config').db;
+var dbConfig = require('./deploy/config').db;
 var mongoose = require('mongoose');
 mongoose.connect(dbConfig.url, { useNewUrlParser: true, useUnifiedTopology: true }, function(err, connection) {
     if (err) {
