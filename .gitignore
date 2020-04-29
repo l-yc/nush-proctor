@@ -141,5 +141,3 @@ tags
 *.srl
 *.crt
 *.csr
-*.cnf
-*.ext
