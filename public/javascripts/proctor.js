@@ -3,7 +3,7 @@ console.clear();
 
 let username = window.prompt('Enter username:');
 
-/* Signaling Server Setup */
+/* Signaling Server */
 const socket = io({
   autoConnect: true // no need to call socket.open()
 });
@@ -16,21 +16,31 @@ socket.on('connect', event => {
   });
 });
 
-/* WebRTC Setup */
+/* WebRTC Peer Connection */
 const { RTCPeerConnection, RTCSessionDescription } = window;
-const configuration = {iceServers: [
-  //{'urls': 'stun:stun.l.google.com:19302'},
-  //{'urls': 'stun:stun1.l.google.com:19302'}
-  { urls:['stun:mystun.sytes.net:3478'] },
-  {
-      urls:['turn:mystun.sytes.net:3478'],
-      credential:'test',
-      username:'test'
-  }
-],
+
+let configuration = {
+    iceServers: null,
     iceTransportPolicy: 'relay',
     iceCandidatePoolSize: 0
 };
+
+socket.on('iceServers', data => {
+    configuration.iceServers = data.iceServers;
+});
+//const configuration = {iceServers: [
+//  //{'urls': 'stun:stun.l.google.com:19302'},
+//  //{'urls': 'stun:stun1.l.google.com:19302'}
+//  { urls:['stun:mystun.sytes.net:3478'] },
+//  {
+//      urls:['turn:mystun.sytes.net:3478'],
+//      credential:'test',
+//      username:'test'
+//  }
+//],
+//    iceTransportPolicy: 'relay',
+//    iceCandidatePoolSize: 0
+//};
 
 let peerConnection = null;
 

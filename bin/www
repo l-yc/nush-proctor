@@ -27,8 +27,8 @@ app.set('port', port);
 
 //var server = http.createServer(app);
 var fs = require('fs');
-var privateKey = fs.readFileSync(config.privateKey);
-var certificate = fs.readFileSync(config.certificate);
+var privateKey = fs.readFileSync(config.tls.privateKey);
+var certificate = fs.readFileSync(config.tls.certificate);
 var credentials = { key: privateKey, cert: certificate };
 var server = https.createServer(credentials, app);
 
