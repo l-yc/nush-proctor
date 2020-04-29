@@ -1,3 +1,36 @@
+var crypto = require('crypto');
+
+function getTURNCredentials(name, secret){
+  var unixTimeStamp = parseInt(Date.now()/1000) + 24*3600,   // this credential would be valid for the next 24 hours
+    username = [unixTimeStamp, name].join(':'),
+    password,
+    hmac = crypto.createHmac('sha1', secret);
+  hmac.setEncoding('base64');
+  hmac.write(username);
+  hmac.end();
+  password = hmac.read();
+  return {
+    username: username,
+    password: password
+  };
+}
+
+function getIceServers(name) {
+  return {
+    iceServers: global.config.iceServers.map(server => {
+      if (server.urls[0].substr(0,4) === 'turn') {
+        let credentials = getTURNCredentials(name,server.authSecret)
+        server = {
+          urls: server.urls,
+          username: credentials.username,
+          credential: credentials.password
+        }
+      }
+      return server;
+    })
+  };
+}
+
 module.exports = function(server) {
   const io = require('socket.io')(server);
 
@@ -8,11 +41,14 @@ module.exports = function(server) {
     console.log(socket.id + ' connected');
 
     socket.on('login', function(data) { // register user
+      let credentials;
       if (data.secret === 'AWTX2fBlP+6CDYamKfPZ+A==') {
         seer = socket.id;   // TODO: need to have a more legit way to identify seer
         console.log('Seer registered: ' + seer);
+        socket.emit('iceServers', getIceServers('seer'));
       } else {
         online[socket.id] = data.username;  // TODO: probably should have uniqueness check?
+        socket.emit('iceServers', getIceServers(data.username));
       }
       io.sockets.emit('online users', online);
     });
@@ -54,4 +90,5 @@ module.exports = function(server) {
     });
   });
 
+  return io;
 }

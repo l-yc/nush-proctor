@@ -1,21 +1,44 @@
 'use strict';
 console.clear();
 
-/* Peer Connection */
+/* Signaling Server */
+const socket = io({
+  autoConnect: false
+});
+
+socket.on('connect', () => {
+  console.log('[PROCTOR] Connected.');
+  socket.emit('login', {
+    secret: 'AWTX2fBlP+6CDYamKfPZ+A=='
+  });
+  console.log('[PROCTOR] Registered as seer.');
+});
+
+/* WebRTC Peer Connection */
 const { RTCPeerConnection, RTCSessionDescription } = window;
-const configuration = {iceServers: [
-  //{'urls': 'stun:stun.l.google.com:19302'},
-  //{'urls': 'stun:stun1.l.google.com:19302'}
-  { urls:['stun:mystun.sytes.net:3478'] },
-  {
-      urls:['turn:mystun.sytes.net:3478'],
-      credential:'test',
-      username:'test'
-  }
-],
+
+let configuration = {
+    iceServers: null,
     iceTransportPolicy: 'relay',
     iceCandidatePoolSize: 0
 };
+
+socket.on('iceServers', data => {
+    configuration.iceServers = data.iceServers;
+});
+//const configuration = {iceServers: [
+//  //{'urls': 'stun:stun.l.google.com:19302'},
+//  //{'urls': 'stun:stun1.l.google.com:19302'}
+//  { urls:['stun:mystun.sytes.net:3478'] },
+//  {
+//      urls:['turn:mystun.sytes.net:3478'],
+//      credential:'test',
+//      username:'test'
+//  }
+//],
+//    iceTransportPolicy: 'relay',
+//    iceCandidatePoolSize: 0
+//};
 
 class Student {
   constructor(from, username) {
@@ -96,19 +119,6 @@ class Student {
 };
 
 let students = {};
-
-/* Signaling Server */
-const socket = io({
-  autoConnect: false
-});
-
-socket.on('connect', () => {
-  console.log('[PROCTOR] Connected.');
-  socket.emit('login', {
-    secret: 'AWTX2fBlP+6CDYamKfPZ+A=='
-  });
-  console.log('[PROCTOR] Registered as seer.');
-});
 
 let connectButton = document.querySelector('#connect');
 connectButton.addEventListener('click', e => {
