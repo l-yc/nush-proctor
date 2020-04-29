@@ -5,7 +5,7 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var flash = require('connect-flash');
 
-global.config = require('./config');
+global.config = require('./deploy/config');
 var debug = require('debug')
 
 var app = express();
