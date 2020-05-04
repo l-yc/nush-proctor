@@ -17,25 +17,5 @@ module.exports = {
   // Generates hash using bCrypt
   createPasswordHash: function(password){
     return bCrypt.hashSync(password, bCrypt.genSaltSync(10), null);
-  }/*,
-  // Select keys
-  PRIVATE_DATA: 'firstName lastName username email points',
-  PUBLIC_DATA: 'username points',
-  // Creates a filtered JSON object containing all private and public info
-  getPrivateDataAsJson: function(user) {
-    return {
-      firstName: user.firstName,
-      lastName: user.lastName,
-      username: user.username,
-      email: user.email,
-      points: user.points
-    };
-  },
-  // Creates a filtered JSON object containing only public info
-  getPublicDataAsJson: function(user) {
-    return {
-      username: user.username,
-      points: user.points
-    };
-  }*/
+  }
 };
