@@ -1,50 +1,12 @@
 var express = require('express');
 var router = express.Router();
 
+var User = require('../models/user.js').model;
+var UserLocal= require('../models/userLocal.js').model;
+
 //var Token = require('../models/token').model;
 
 var debug = require('debug')('parangninja:routes:middleware.js');
-
-function loadAccounts() {
-  //return fs.promises.readFile('./deploy/accounts.csv')
-  console.log('loading accounts');
-  return new Promise((resolve, reject) => {
-    const readline = require('readline');
-    const fs = require('fs');
-
-    const rl = readline.createInterface({
-      input: fs.createReadStream('./deploy/accounts.csv')
-    });
-
-    let accounts = [];
-
-    rl.on('line', (line) => {
-      //console.log('Line from file:', line);
-      /** FORMAT
-       * proctor: <username>; <password>; 
-       * student: <username>; <password>; <assignedProctor>
-       */
-
-      let res = line.match('^(.+?):\\s*(.+?);\\s*(.+?)(;\\s*(.+))?$');
-      //console.log(res);
-      const crypto = require("crypto");
-      const id = crypto.randomBytes(16).toString("hex");
-
-      accounts.push({
-        id: id,
-        role: res[1],
-        username: res[2],
-        password: res[3],
-        assignedProctor: res[5]
-      });
-    });
-
-    rl.on('close', () => {
-      console.log('closing');
-      resolve(accounts);
-    });
-  });
-}
 
 module.exports = function(passport, acl) {
   middleware = {};
@@ -59,6 +21,32 @@ module.exports = function(passport, acl) {
     //debug('Checking for authentication');
     if (req.isAuthenticated()) return next();
     res.redirect('/login');
+  };
+
+  // ACL Controls
+  middleware.getUserId = function(req, res) {
+    // Since numbers are not supported by node_acl in this case, convert
+    //  them to strings, so we can use IDs nonetheless.
+    return req.user && req.user.id.toString() || false;
+  }
+
+  middleware.checkPermission = function(permission) {
+    return function(req, res, next) {
+      let userId = middleware.getUserId(req, res);
+      if (global.config.db.enabled) {
+        User.findById(userId, function(err, user) {
+          if (!err && user) return next();
+          res.redirect('/');
+        });
+      } else {
+        UserLocal.findById(userId, function(err, user) {
+          if (permission === 'restricted') {
+            if (user.role === 'proctor') return next();
+            else res.redirect('/'); // TODO: make this more robust
+          }
+        });
+      }
+    }
   };
 
   return middleware;

@@ -18,11 +18,16 @@ module.exports = function(middleware) {
     failureFlash: true
   }));
 
-  router.get('/', middleware.checkAuthenticated, function(req, res, next) {
+  // Protected
+  router.use(middleware.checkAuthenticated);
+
+  router.get('/', function(req, res, next) {
     res.render('proctor', { title: global.config.appName });
   });
 
-  router.get('/seer', middleware.checkAuthenticated, function(req, res, next) {
+  router.get('/seer', [
+    middleware.checkPermission('restricted')
+  ], function(req, res, next) {
     res.render('seer', { title: global.config.appName });
   });
 
