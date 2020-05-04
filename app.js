@@ -3,6 +3,7 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+var expressSession = require('express-session');
 var flash = require('connect-flash');
 
 global.config = require('./deploy/config');
@@ -24,6 +25,14 @@ if (dbConfig.enabled) {
 } else {
   modelPromise = UserLocalHelper.connect();
 }
+
+let sessionMiddleware = expressSession({
+  secret: global.config.sessionSecret,
+  resave: false,
+  saveUninitialized: true,
+  cookie: { secure: true },
+  key: 'express.sid'
+});
 
 modelPromise.then(connection => {
   debug('Connected to database successfully');
@@ -56,14 +65,7 @@ modelPromise.then(connection => {
     });
   }
 
-  var expressSession = require('express-session');
-  app.use(expressSession({
-    secret: global.config.sessionSecret,
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: true },
-    key: 'express.sid'
-  }));
+  app.use(sessionMiddleware);
   app.use(flash());
   app.use(passport.initialize());
   app.use(passport.session());
@@ -107,9 +109,11 @@ modelPromise.then(connection => {
   return;
 });
 
+console.log('set up app.');
+
 // webrtc server
-app.on('event:serverReady', function(server) {
-  app.webrtcServer = require('./webrtc-server/main')(server);
+app.on('event:serverReady', function(server) { // runs after set up server;
+  app.webrtcServer = require('./webrtc-server/main')(server, sessionMiddleware);
 });
 
 module.exports = app;
