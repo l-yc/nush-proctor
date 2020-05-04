@@ -12,13 +12,20 @@ var app = express();
 
 // db setup
 var User = require('./models/user').model;
+var UserLocalHelper = require('./models/userLocal');
+var UserLocal = UserLocalHelper.model;
+
 var dbConfig = global.config.db;
 var mongoose = require('mongoose');
-mongoose.connect(dbConfig.url, { useNewUrlParser: true, useUnifiedTopology: true }, function(err, connection) {
-  if (err) {
-    debug('Failed to connect to database: ' + err);
-    return;
-  }
+
+let modelPromise = null;
+if (dbConfig.enabled) {
+  modelPromise = mongoose.connect(dbConfig.url, { useNewUrlParser: true, useUnifiedTopology: true });
+} else {
+  modelPromise = UserLocalHelper.connect();
+}
+
+modelPromise.then(connection => {
   debug('Connected to database successfully');
 
   let acl = null;
@@ -27,15 +34,27 @@ mongoose.connect(dbConfig.url, { useNewUrlParser: true, useUnifiedTopology: true
 
   // Configuring Passport
   var passport = require('./models/passport.js')(acl);
-  passport.serializeUser(function(user, done) {
-    done(null, user._id);
-  });
-
-  passport.deserializeUser(function(id, done) {
-    User.findById(id, function(err, user) {
-      done(err, user);
+  if (dbConfig.enabled) {
+    passport.serializeUser(function(user, done) {
+      done(null, user._id);
     });
-  });
+
+    passport.deserializeUser(function(id, done) {
+      User.findById(id, function(err, user) {
+        done(err, user);
+      });
+    });
+  } else {
+    passport.serializeUser(function(user, done) {
+      done(null, user.id);
+    });
+
+    passport.deserializeUser(function(id, done) {
+      UserLocal.findById(id, function(err, user) {
+        done(err, user);
+      });
+    });
+  }
 
   var expressSession = require('express-session');
   app.use(expressSession({
@@ -83,6 +102,9 @@ mongoose.connect(dbConfig.url, { useNewUrlParser: true, useUnifiedTopology: true
     res.status(err.status || 500);
     res.render('error');
   });
+}).catch(err => {
+  debug('Failed to connect to database: ' + err);
+  return;
 });
 
 // webrtc server
