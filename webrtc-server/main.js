@@ -1,5 +1,8 @@
 var crypto = require('crypto');
 
+var User = require('../models/user.js').model;
+var UserLocal = require('../models/userLocal.js').model;
+
 function getTURNCredentials(name, secret){
   var unixTimeStamp = parseInt(Date.now()/1000) + 24*3600,   // this credential would be valid for the next 24 hours
     username = [unixTimeStamp, name].join(':'),
@@ -31,62 +34,109 @@ function getIceServers(name) {
   };
 }
 
-module.exports = function(server) {
+module.exports = function(server, sessionMiddleware) {
   const io = require('socket.io')(server);
+  console.log('setting up webrtc server');
+
+  io.use(function(socket, next){
+    // Wrap the express middleware
+    sessionMiddleware(socket.request, {}, next);
+  })
 
   let online = {};
-  let candidates = {};
+  let socketMap = {};
   let seer = null;  // TODO: allow more than 1 seer
   io.on('connection', socket => {
-    console.log(socket.id + ' connected');
+    if (!socket.request.session || !socket.request.session.passport) {
+      socket.disconnect();
+      return;
+    }
+
+    let user = null;
 
     socket.on('login', function(data) { // register user
-      let credentials;
-      if (data.secret === 'AWTX2fBlP+6CDYamKfPZ+A==') {
-        seer = socket.id;   // TODO: need to have a more legit way to identify seer
-        console.log('Seer registered: ' + seer);
-        socket.emit('iceServers', getIceServers('seer'));
-      } else {
-        online[socket.id] = data.username;  // TODO: probably should have uniqueness check?
-        socket.emit('iceServers', getIceServers(data.username));
-      }
-      io.sockets.emit('online users', online);
+      var userId = socket.request.session.passport.user;
+
+      console.log(socket.id, userId, 'connected');
+
+      new Promise((resolve, reject) => {
+        if (global.config.db.enabled) {
+          User.findById(userId, function(err, _user) {
+            if (err) reject(err);
+            else resolve({
+              id: _user._id,
+              username: _user.username,
+              role: null  // TODO: fix this to work with db
+            });
+          });
+        } else {
+          UserLocal.findById(userId, function(err, _user) {
+            console.log('got the user %s %o %s %s', userId, _user, userId, socket.id);
+            if (err) reject(err);
+            if (!_user) reject('cannot find user');
+            user = {
+              id: _user.id,
+              username: _user.username,
+              role: _user.role
+            };
+            if (_user.assignedProctor) {
+              UserLocal.findOne({ username: _user.assignedProctor }, function(err, __user) {
+                if (err) reject(err);
+                user.seer = __user.id;
+                resolve(user);
+              });
+            } else resolve(user);
+          });
+        }
+      }).then(_user => {
+        user = _user;
+
+        let credentials;
+        socketMap[user.id] = socket.id;  // TODO: need to give username also
+        online[user.id] = user.username;
+        socket.emit('config', {
+          iceServers: getIceServers(user.id).iceServers,
+          seer: (user.role === 'proctor' ? null : user.seer),
+          username: user.username
+        });
+        io.sockets.emit('online users', online);
+      }).catch(err => {
+        console.log(err);
+        socket.disconnect();
+      });
     });
 
     socket.on('disconnect', () => {
-      //online.remove(socket.id);
-      delete online[socket.id];
-      delete candidates[socket.id];
+      delete socketMap[user.id];
+      delete online[user.id];
       io.sockets.emit('online users', online);
     });
 
     socket.on('submit offer', function(data) {
       console.log('Offer received: %o', data);
-      if (data.to == null) data.to = seer;
-      console.log('Forwarding offer to ' + data.to);
-      socket.to(data.to).emit('available offer', {
+      console.log('Forwarding offer to ' + socketMap[data.to]);
+      socket.to(socketMap[data.to]).emit('available offer', {
         offer: data.offer,
-        from: socket.id
+        from: user.id
       });
     });
 
     socket.on('accept offer', function(data) {
       console.log('Offer accepted');
-      socket.to(data.to).emit('offer accepted', {
+      socket.to(socketMap[data.to]).emit('offer accepted', {
         answer: data.answer,
-        from: socket.id
+        from: user.id
       });
     });
 
     socket.on('submit candidate', function(data) {
-      console.log('Candidate received from %s: %o', socket.id, data.candidate);
-      if (data.to == null) data.to = seer;
+      //console.log('Candidate received from %s: %o', user.id, data.candidate);
+      console.log('Candidate received from %s', user.id);
       console.log('Sending candidate to ' + data.to);
-      socket.to(data.to).emit('candidate available', {
+      socket.to(socketMap[data.to]).emit('candidate available', {
         candidate: data.candidate,
-        from: socket.id
+        from: user.id
       });
-      candidates[socket.id] = data.candidate;
     });
   });
 
