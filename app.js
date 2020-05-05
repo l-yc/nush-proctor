@@ -12,19 +12,7 @@ var debug = require('debug')
 var app = express();
 
 // db setup
-var User = require('./models/user').model;
-var UserLocalHelper = require('./models/userLocal');
-var UserLocal = UserLocalHelper.model;
-
-var dbConfig = global.config.db;
-var mongoose = require('mongoose');
-
-let modelPromise = null;
-if (dbConfig.enabled) {
-  modelPromise = mongoose.connect(dbConfig.url, { useNewUrlParser: true, useUnifiedTopology: true });
-} else {
-  modelPromise = UserLocalHelper.connect();
-}
+var db = require('./models/db');
 
 let sessionMiddleware = expressSession({
   secret: global.config.sessionSecret,
@@ -34,8 +22,8 @@ let sessionMiddleware = expressSession({
   key: 'express.sid'
 });
 
-modelPromise.then(connection => {
-  debug('Connected to database successfully');
+db.connect().then(connection => {
+  console.log('Connected to database successfully: %o', connection);
 
   let acl = null;
   //acl = require('./routes/access-control.js')(connection);
@@ -43,27 +31,8 @@ modelPromise.then(connection => {
 
   // Configuring Passport
   var passport = require('./models/passport.js')(acl);
-  if (dbConfig.enabled) {
-    passport.serializeUser(function(user, done) {
-      done(null, user._id);
-    });
-
-    passport.deserializeUser(function(id, done) {
-      User.findById(id, function(err, user) {
-        done(err, user);
-      });
-    });
-  } else {
-    passport.serializeUser(function(user, done) {
-      done(null, user.id);
-    });
-
-    passport.deserializeUser(function(id, done) {
-      UserLocal.findById(id, function(err, user) {
-        done(err, user);
-      });
-    });
-  }
+  passport.serializeUser(db.serializeUser);
+  passport.deserializeUser(db.deserializeUser);
 
   app.use(sessionMiddleware);
   app.use(flash());

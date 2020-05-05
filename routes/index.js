@@ -12,11 +12,12 @@ module.exports = function(middleware) {
     failureFlash: true
   }));
 
-  router.post('/signup', middleware.authenticate('signup', {
-    successRedirect: '/seer',
-    failureRedirect: '/login',
-    failureFlash: true
-  }));
+  // TODO: disabled signups for now
+  //router.post('/signup', middleware.authenticate('signup', {
+  //  successRedirect: '/seer',
+  //  failureRedirect: '/login',
+  //  failureFlash: true
+  //}));
 
   // Protected
   router.use(middleware.checkAuthenticated);

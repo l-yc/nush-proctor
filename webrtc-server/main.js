@@ -1,7 +1,6 @@
 var crypto = require('crypto');
 
-var User = require('../models/user.js').model;
-var UserLocal = require('../models/userLocal.js').model;
+var User = require('../models/db').models.UserHelper.model;
 
 function getTURNCredentials(name, secret){
   var unixTimeStamp = parseInt(Date.now()/1000) + 24*3600,   // this credential would be valid for the next 24 hours
@@ -60,34 +59,27 @@ module.exports = function(server, sessionMiddleware) {
       console.log(socket.id, userId, 'connected');
 
       new Promise((resolve, reject) => {
-        if (global.config.db.enabled) {
-          User.findById(userId, function(err, _user) {
-            if (err) reject(err);
-            else resolve({
-              id: _user._id,
-              username: _user.username,
-              role: null  // TODO: fix this to work with db
-            });
-          });
-        } else {
-          UserLocal.findById(userId, function(err, _user) {
-            console.log('got the user %s %o %s %s', userId, _user, userId, socket.id);
-            if (err) reject(err);
-            if (!_user) reject('cannot find user');
+        User.findById(userId, function(err, _user) {
+          //console.log('got user %s %o %s %s', userId, _user, userId, socket.id);
+          if (err) reject(err);
+          else if (!_user) reject('cannot find user');
+          else {
             user = {
-              id: _user.id,
+              id: _user._id,
               username: _user.username,
               role: _user.role
             };
+
             if (_user.assignedProctor) {
-              UserLocal.findOne({ username: _user.assignedProctor }, function(err, __user) {
+              User.findOne({ username: _user.assignedProctor }, function(err, __user) {
                 if (err) reject(err);
-                user.seer = __user.id;
+                if (!__user) reject(err);
+                user.seer = __user._id;
                 resolve(user);
               });
             } else resolve(user);
-          });
-        }
+          }
+        });
       }).then(_user => {
         user = _user;
 
