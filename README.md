@@ -1,52 +1,121 @@
 # nush-proctor
 
+A proctoring application written in Node.js that allows webcam and screen sharing.
+
 ## TODO
-[x] - Write script to auto create first admin user (init.js)
-[ ] - Write init.sh
-[ ] - Installation script?
-[ ] - Check through Dependencies
-[ ] - Add detailed installation instructions
-[ ] - Clean up README
+
+- [x] Write script to auto create first admin user (init.js)
+- [ ] Write init.sh
+- [ ] Installation script?
+- [x] Check through Dependencies
+- [x] Add detailed installation instructions
+- [x] Clean up README
 
 ## Known Issues
-* Disconnection detection does not work for Seer on Chrome
+* ~~Disconnection detection does not work for Seer on Chrome~~ Fixed in v0.0.2
 
 ## Dependencies
-* MongoDB ([install](https://docs.mongodb.com/manual/administration/install-community/))
-* node.js ([install](https://nodejs.org/en/download/))
+
+* Node.js > v10 ([install](https://nodejs.org/en/download/))
 * npm
+* [Optional] MongoDB ([install](https://docs.mongodb.com/manual/administration/install-community/))
+* [Optional] CoTURN ([install](https://github.com/coturn/coturn))
+
+## Installation
+
+```shell
+git clone https://github.com/l-yc/nush-proctor && cd nush-proctor
+npm install
+```
+
+## Building
+
+```
+VERSION= 		# specify a version
+podman build . -t proctor
+podman tag proctor quay.io/l_yc/proctor:$VERSION
+podman push quay.io/l_yc/proctor:$VERSION
+```
+
+## Configuration
+
+A sample configuration file for local development is provided in `./deploy/config.js`.
+
+```javascript
+module.exports = {
+  appName: 'nush-proctor',
+  port: 8080,
+  sessionSecret: 'insertsessionsecret',
+  tls: {
+    privateKey: './testing/server.key',
+    certificate: './testing/server.crt'
+  },
+  db: {
+    type: 'file',
+    url: './deploy/accounts.csv'
+  },
+  iceServers: [
+    { urls:['stun:localhost:3478'] },
+    {
+      urls: ['turn:localhost:3478'],
+      authSecret: 'insertauthsecret'
+    }
+  ]
+};
+```
+
+* **appName:** Name to display on  the page
+* **port:** Port for the web server and signaling server to listen on
+* **sessionSecret:** Secret used by express-sessions.
+* **tls:** Configuration for HTTPS (required for media sharing)
+  * **privateKey:** Path to your private key, relative to the root directory of the repository
+  * **certificate:** Path to your TLS certificate, relative to the root directory of the repository
+* **db:** Configuration for Database:
+  * **type:** Type of data storage you want to use (currently only for user logins)
+    * `'mongo'`: Uses MongoDB to store data. MongoDB dependency is required. **WARNING: This feature has not been robustly tested.**
+    * `'file'`: Uses a csv file to store data.
+  * **url:** Connection information for the database:
+    * `'mongo'`: Use the database url, e.g. `'mongodb://localhost/nush-proctor'`
+    * `'file'`: Uses a csv file to store data.
+* **iceServers:** Configuration for ICE Servers used by WebRTC. Contains a list of servers, which have the following fields:
+  * **url:** Url to the ICE Server, takes the form `<protocol>:<domain>:<port>`.
+  * **authSecret:** Required if you are using TURN REST api.
+
+## Deployment
+
+There are two options, podman is recommended in most cases unless you would like to modify the code.
+
+### Direct
+
+Ensure you have installed all the dependencies correctly.
 
 Make sure MongoDB is enabled and running, i.e. do sth like the following:
+
 ```shell
 systemctl enable mongod
 systemctl start mongod
 ```
 
-## Installation
-1. git clone
-2. npm install
-3. run init.sh
+Start the proctor
 
-## Docker Notes
-### Running
+```shell
+npm start
+```
+
+For details on TURN server, refer to Podman section or Google.
+
+### With Podman
+
+#### Running
 ```
 podman run --pod proctor --name nodetest --env DEBUG=proctor:* --rm -d 7d3948d3116e
 podman run -it --pod proctor --name nodetest -v /home/ninja/dev/tmp:/usr/src/app/deploy --env DEBUG=proctor:* proctor
 ```
 or refer to `./deploy/deploy.sh`
 
-### Building
-```
-podman build .
-```
 
-### Deployment instructions (TODO)
-# Proctor Deploy
-
-## First things
-
+##### First things
 Create running directory
-
 ```
 mkdir proctor-deploy
 cd proctor-deploy
@@ -55,8 +124,7 @@ mkdir deploy
 mkdir data
 ```
 
-## Firewall
-
+##### Configure firewall
 ```
 firewall-cmd --set-default-zone=public
 firewall-cmd --zone=public --add-port=3478/tcp --permanent
@@ -68,32 +136,24 @@ firewall-cmd --zone=public --add-port=49160-49200/udp --permanent
 firewall-cmd --zone=public --add-port 8080/tcp --permanent
 ```
 
-## Create pod
-
+##### Create pod
 ```
 podman pod create --name proctor -p 8080:8080
 ```
-
-## MongoDB
-
-```
-podman pull mongo
-```
-
-## Proctor
-
+##### Pull Images
+Fetch proctor
 ```
 podman login quay.io
 ```
-
-type username and password
-
+Type username and password
 ```
-podman pull quay.io/l_yc/proctor:0.0.1
+podman pull quay.io/l_yc/proctor:$VERSION
 ```
-
-## TLS Certbot
-
+Fetch MongoDB (optional)
+```
+podman pull mongo
+```
+##### Set up TLS Certbot
 ```
 sudo yum install certbot
 
@@ -104,32 +164,24 @@ sudo certbot certonly --standalone
 
 firewall-cmd --remove-port=80/tcp
 ```
+Symlinks to keys are now in (copy them to `./proctor-deploy/deploy`)
 
-symlinks to keys are now in
-
-**cert and chain:** /etc/letsencrypt/live/mystun.sytes.net/fullchain.pem
-
-**key:** /etc/letsencrypt/live/mystun.sytes.net/privkey.pem
-
-copy them to `proctor-deploy/deploy`
+* **cert and chain:** `/etc/letsencrypt/live/$DOMAIN/fullchain.pem`
+* **key:** `/etc/letsencrypt/live/$DOMAIN/privkey.pem`
 
 ```
 cp /etc/letsencrypt/archive/mystun.sytes.net/fullchain1.pem ./deploy/
 cp /etc/letsencrypt/archive/mystun.sytes.net/privkey1.pem ./deploy/
 ```
-
-for auto-renewal (**TODO**)
-
+For auto-renewal (**TODO**)
 ```
 echo "0 0,12 * * * root python -c 'import random; import time; time.sleep(random.random() * 3600)' && certbot renew -q --pre-hook 'service haproxy stop' --post-hook 'service haproxy start'" | sudo tee -a /etc/crontab > /dev/null
 ```
 
-## Running
-
-Create proctor config
-
+##### Running
+Create proctor config (follow instructions from **Configuration**):
 ```
-// ./proctor-deploy/config.js
+// ./proctor-deploy/deploy/config.js
 
 module.exports = {
   appName: 'nush-proctor',
@@ -143,25 +195,23 @@ module.exports = {
     url: 'mongodb://localhost/nush-proctor'
   },
   iceServers: [
-    { urls:['stun:mystun.sytes.net:3478'] },
+    { urls:['stun:offbyone.xyz:3478'] },
     {
-      urls: ['turn:mystun.sytes.net:3478'],
+      urls: ['turn:offbyone.xyz:3478'],
       authSecret: 'aGVsbG90b2Z1c2FyZXRoZWJlc3R0aGluZ2ludGhld29ybGQ='
     }
   ]
 };
 ```
 
-Start TURN server
-
+Start TURN server (run `sudo yum install tmux coturn` if they are not installed)
 ```
-tmux # remember to install if not installed
-
+tmux
+# inside tmux
 turnserver -a -f -v -n --no-dtls --no-tls -r mystun.sytes.net -X 35.247.138.170 --use-auth-secret --static-auth-secret=aGVsbG90b2Z1c2FyZXRoZWJlc3R0aGluZ2ludGhld29ybGQ=
 ```
 
 or,
-
 ```
 podman run -d -p 3478:3478 \
     -v $(pwd)/my.conf:/etc/coturn/turnserver.conf \
@@ -171,7 +221,6 @@ podman run -d -p 3478:3478 \
 ```
 
 Run mongo
-
 ```
 podman run -d \
     -v $(pwd)/data:/data/db \
@@ -181,10 +230,9 @@ podman run -d \
 ```
 
 Run proctor
-
 ```
-setenforce 0
-chmod -R 777 ./deploy
+setenforce 0	# TODO need a policy for this
+#chmod -R 777 ./deploy
 
 podman run -dit \
 	--pod proctor \
@@ -194,17 +242,18 @@ podman run -dit \
 	proctor:0.0.1
 ```
 
-First time: create admin user
-
+(OPTIONAL, if using MongoDB) First time: create admin user
 ```
 podman exec -it proctor-main /bin/sh
 node init.js
 ```
 
-## Building
+### Changelog
 
-```
-podman build . -t proctor
-podman tag proctor quay.io/l_yc/proctor:0.0.1
-podman push quay.io/l_yc/proctor:0.0.1
-```
+* v0.1.0
+  * Student Login
+  * Student Proctor Mapping
+* v0.0.2
+  * Chrome disconnection issue bug fixes
+* v0.0.1
+* v0.0.0
