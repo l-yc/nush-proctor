@@ -16,9 +16,14 @@ const socket = io({
 });
 
 socket.on('connect', () => {
-  console.log('[PROCTOR] Connected.');
+  console.log('[PROCTOR] Connected to the signaling server.');
   socket.emit('login');
-  console.log('[PROCTOR] Registered as seer.');
+  console.log('[PROCTOR] Registered user.');
+});
+
+socket.on('disconnect', () => {
+  console.warn('[PROCTOR] Disconnected from signaling server.');
+  alert('You have been disconnected. Please reload the page.');
 });
 
 /* WebRTC Peer Connection */
@@ -31,7 +36,10 @@ let configuration = {
 };
 
 socket.on('config', data => {
+  console.log('[PROCTOR] Obtained config: %o', data);
   configuration.iceServers = data.iceServers;
+  let message = document.querySelector('#message');
+  message.innerHTML = `Logged in as <strong>${data.username}</strong>`;
 });
 //const configuration = {iceServers: [
 //  //{'urls': 'stun:stun.l.google.com:19302'},
