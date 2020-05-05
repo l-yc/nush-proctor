@@ -15,7 +15,6 @@ function setStatus(connectionState) {
   connectionStateIndicator.innerHTML = `Status: <strong>${connectionState}</strong>`;
 }
 
-
 /* Signaling Server */
 const socket = io({
   autoConnect: true // no need to call socket.open()
@@ -23,12 +22,13 @@ const socket = io({
 
 socket.on('connect', event => {
   console.log('[PROCTOR] Connected to the signaling server.');
-  // let username = window.prompt('Enter username:');
-  // socket.emit('login', {  // TODO: this needs to be secured for practical use
-  //   username: username
-  // });
   socket.emit('login');
-  // console.log('[PROCTOR] Registering username "%s"..', username);
+  console.log('[PROCTOR] Registered user.');
+});
+
+socket.on('disconnect', () => {
+  console.warn('[PROCTOR] Disconnected from signaling server.');
+  alert('You have been disconnected. Please reload the page.');
 });
 
 /* WebRTC Peer Connection */
@@ -43,7 +43,7 @@ let configuration = {
 let seer = [];
 
 socket.on('config', data => {
-  console.log('[PROCTOR] Obtained config:%o', data);
+  console.log('[PROCTOR] Obtained config: %o', data);
   seer = data.seer;
   configuration.iceServers = data.iceServers;
 

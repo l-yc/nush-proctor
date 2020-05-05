@@ -1,5 +1,9 @@
 @import url("base.css");
 
+#message {
+  text-align: center;
+}
+
 #video-controls {
   display: flex;
   justify-content: center;
