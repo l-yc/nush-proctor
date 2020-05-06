@@ -57,6 +57,14 @@ let timeoutHandle = null;
 function createNewConnection() {
   peerConnection = new RTCPeerConnection(configuration);
 
+  // myPeerConnection.onicecandidate = handleICECandidateEvent;
+  // myPeerConnection.ontrack = handleTrackEvent;
+  // myPeerConnection.onnegotiationneeded = handleNegotiationNeededEvent;
+  // myPeerConnection.onremovetrack = handleRemoveTrackEvent;
+  // myPeerConnection.oniceconnectionstatechange = handleICEConnectionStateChangeEvent;
+  // myPeerConnection.onicegatheringstatechange = handleICEGatheringStateChangeEvent;
+  // myPeerConnection.onsignalingstatechange = handleSignalingStateChangeEvent;
+
   peerConnection.onicecandidate = ({candidate}) => {
     console.log('[PROCTOR] Obtained an ICE Candidate %o.', candidate);
     if (candidate === null) return; // useless
@@ -129,21 +137,22 @@ async function call() {
   createNewConnection();
 
   localStreams.forEach(stream => stream.getTracks().forEach(track => peerConnection.addTrack(track, stream)));
-  console.log(peerConnection.ontrack);
 
-  const offer = await peerConnection.createOffer({
-    //offerToReceiveVideo: true,
-    offerToReceiveAudio: true
-  });
-  console.log('[PROCTOR] Created offer.');
-  await peerConnection.setLocalDescription(new RTCSessionDescription(offer));
-  console.log('[PROCTOR] Local description set.');
+  peerConnection.onnegotiationneeded = async () => {
+    const offer = await peerConnection.createOffer({
+      //offerToReceiveVideo: true,
+      offerToReceiveAudio: true
+    });
+    console.log('[PROCTOR] Created offer.');
+    await peerConnection.setLocalDescription(new RTCSessionDescription(offer));
+    console.log('[PROCTOR] Local description set.');
 
-  socket.emit('submit offer', {
-    offer: offer,
-    to: seer
-  });
-  console.log('[PROCTOR] Submitting offer.');
+    socket.emit('submit offer', {
+      offer: offer,
+      to: seer
+    });
+    console.log('[PROCTOR] Submitting offer.');
+  }
 
   socket.on('offer accepted', async data => {
     console.log('[PROCTOR] Offer accepted.');

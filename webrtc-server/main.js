@@ -74,7 +74,10 @@ module.exports = function(server, sessionMiddleware) {
               User.findOne({ username: _user.assignedProctor }, function(err, __user) {
                 if (err) reject(err);
                 if (!__user) reject(err);
-                user.seer = __user._id;
+                user.seer = {
+                  socket: null, // we dont know this yet
+                  user: __user._id
+                }
                 resolve(user);
               });
             } else resolve(user);
@@ -105,29 +108,55 @@ module.exports = function(server, sessionMiddleware) {
     });
 
     socket.on('submit offer', function(data) {
-      console.log('Offer received: %o', data);
-      console.log('Forwarding offer to ' + socketMap[data.to]);
-      socket.to(socketMap[data.to]).emit('available offer', {
+      //console.log('Offer received: %o', data);
+      console.log('Offer received from %o', {
+        socket: socket.id,
+        user: user.id
+      });
+      if (!data.to.socket) { // this only happens when sending to the seer
+        data.to.socket = socketMap[data.to.user]; // TODO: assuming seer only has 1 device
+      }
+      console.log('Forwarding offer to %o', data.to);
+      socket.to(data.to.socket).emit('available offer', {
         offer: data.offer,
-        from: user.id
+        from: {
+          socket: socket.id,
+          user: user.id
+        }
       });
     });
 
     socket.on('accept offer', function(data) {
       console.log('Offer accepted');
-      socket.to(socketMap[data.to]).emit('offer accepted', {
+      if (!data.to.socket) { // this only happens when sending to the seer
+        data.to.socket = socketMap[data.to.user]; // TODO: assuming seer only has 1 device
+      }
+      console.log('Answering %o', data.to);
+      socket.to(data.to.socket).emit('offer accepted', {
         answer: data.answer,
-        from: user.id
+        from: {
+          socket: socket.id,
+          user: user.id
+        }
       });
     });
 
     socket.on('submit candidate', function(data) {
       //console.log('Candidate received from %s: %o', user.id, data.candidate);
-      console.log('Candidate received from %s', user.id);
-      console.log('Sending candidate to ' + data.to);
-      socket.to(socketMap[data.to]).emit('candidate available', {
+      console.log('Candidate received from %o', {
+        socket: socket.id,
+        user: user.id
+      });
+      if (!data.to.socket) { // this only happens when sending to the seer
+        data.to.socket = socketMap[data.to.user]; // TODO: assuming seer only has 1 device
+      }
+      console.log('Sending candidate to %o', data.to);
+      socket.to(data.to.socket).emit('candidate available', {
         candidate: data.candidate,
-        from: user.id
+        from: {
+          socket: socket.id,
+          user: user.id
+        }
       });
     });
   });
