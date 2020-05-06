@@ -41,19 +41,6 @@ socket.on('config', data => {
   let message = document.querySelector('#message');
   message.innerHTML = `Logged in as <strong>${data.username}</strong>`;
 });
-//const configuration = {iceServers: [
-//  //{'urls': 'stun:stun.l.google.com:19302'},
-//  //{'urls': 'stun:stun1.l.google.com:19302'}
-//  { urls:['stun:mystun.sytes.net:3478'] },
-//  {
-//      urls:['turn:mystun.sytes.net:3478'],
-//      credential:'test',
-//      username:'test'
-//  }
-//],
-//    iceTransportPolicy: 'relay',
-//    iceCandidatePoolSize: 0
-//};
 
 class Student {
   constructor(from, username) {
@@ -188,6 +175,8 @@ socket.on('candidate available', data => {
   students[data.from].peerConnection.addIceCandidate(data.candidate);
 });
 
+let localStreams = [];
+
 socket.on('available offer', async (data) => {
   console.log('[PROCTOR] Received an offer %o.', data);
 
@@ -197,10 +186,28 @@ socket.on('available offer', async (data) => {
   await s.peerConnection.setRemoteDescription(
     new RTCSessionDescription(data.offer)
   );
-  const answer = await s.peerConnection.createAnswer({
-    //offerToReceiveVideo: true,
-    //offerToReceiveAudio: true
+
+  let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  console.log('got stream %o', stream);
+  stream.getTracks().forEach(track => {
+    console.log('add track %o of stream %o', track, stream);
+    s.peerConnection.addTrack(track, stream)
   });
+
+  let trk = stream.getTracks()[0];
+  let talkButton = document.querySelector('#talk');
+  talkButton.onclick = evt => {
+    console.log('hello %o', trk);
+    if (talkButton.innerHTML == 'talk') trk.enabled = true, talkButton.innerHTML = 'shut';
+    else trk.enabled = false, talkButton.innerHTML = 'talk';
+  };
+
+  //localStreams.forEach(stream => stream.getTracks().forEach(track => {
+  //  console.log('add track %o of stream %o', track, stream);
+  //  s.peerConnection.addTrack(track, stream)
+  //}));
+
+  const answer = await s.peerConnection.createAnswer({}); // no options yet
   await s.peerConnection.setLocalDescription(new RTCSessionDescription(answer));
 
   socket.emit('accept offer', {
@@ -210,3 +217,37 @@ socket.on('available offer', async (data) => {
 
   console.log('[PROCTOR] Accepted offer.');
 });
+
+// MARK: attempt to support voice
+function addStream(stream) {
+  localStreams.push(stream);
+  console.log('added stream yay');
+  //Object.keys(student).forEach(key => {
+  //  let pc = student[key];
+  //  console.log('[PROCTOR] Adding stream... %o', stream);
+  //  stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+  //});
+}
+
+//(async function() {
+//  if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+//    let cameraVideo = null;
+//    let talkButton = document.querySelector('#talk');
+//
+//    talkButton.addEventListener('click', e => {
+//      soundOnly = document.getElementById('soundOnly');
+//      navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+//        //cameraVideo.src = window.URL.createObjectURL(stream);
+//        //soundOnly.srcObject = stream;
+//        //soundOnly.play();
+//
+//        console.log('got stream %o', stream)
+//        addStream(stream);
+//      }).catch(err => {
+//        console.log('error: ' + err);
+//      });
+//    });
+//  } else {
+//    alert('your device is not supported');
+//  }
+//})();

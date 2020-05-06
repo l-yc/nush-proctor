@@ -50,19 +50,6 @@ socket.on('config', data => {
   let message = document.querySelector('#message');
   message.innerHTML = `Logged in as <strong>${data.username}</strong>`;
 });
-//const configuration = {iceServers: [
-//  //{'urls': 'stun:stun.l.google.com:19302'},
-//  //{'urls': 'stun:stun1.l.google.com:19302'}
-//  { urls:['stun:mystun.sytes.net:3478'] },
-//  {
-//      urls:['turn:mystun.sytes.net:3478'],
-//      credential:'test',
-//      username:'test'
-//  }
-//],
-//    iceTransportPolicy: 'relay',
-//    iceCandidatePoolSize: 0
-//};
 
 let peerConnection = null;
 let timeoutHandle = null;
@@ -82,9 +69,11 @@ function createNewConnection() {
 
   peerConnection.ontrack = function({ streams: [stream] }) {
     console.log('[PROCTOR] Received stream.');
-    const remoteVideo = document.getElementById("remote-video");
-    if (remoteVideo) {
-      remoteVideo.srcObject = stream;
+    let remoteAudio = document.getElementById("remote-audio");
+    if (remoteAudio) {
+      remoteAudio.srcObject = stream;
+      remoteAudio.play();
+      console.log('playing');
     }
   };
 
@@ -140,10 +129,11 @@ async function call() {
   createNewConnection();
 
   localStreams.forEach(stream => stream.getTracks().forEach(track => peerConnection.addTrack(track, stream)));
+  console.log(peerConnection.ontrack);
 
   const offer = await peerConnection.createOffer({
     //offerToReceiveVideo: true,
-    //offerToReceiveAudio: true
+    offerToReceiveAudio: true
   });
   console.log('[PROCTOR] Created offer.');
   await peerConnection.setLocalDescription(new RTCSessionDescription(offer));
