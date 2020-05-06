@@ -42,13 +42,18 @@ socket.on('config', data => {
   message.innerHTML = `Logged in as <strong>${data.username}</strong>`;
 });
 
-class Student {
-  constructor(from, username) {
-    this.from = from;
-    this.username = username;
-
+class Connection {
+  constructor() {
     this.peerConnection = new RTCPeerConnection(configuration);
     this.timeoutHandle = null;
+
+    // peerConnection.onicecandidate = handleICECandidateEvent;
+    // peerConnection.ontrack = handleTrackEvent;
+    // peerConnection.onnegotiationneeded = handleNegotiationNeededEvent;
+    // peerConnection.onremovetrack = handleRemoveTrackEvent;
+    // peerConnection.oniceconnectionstatechange = handleICEConnectionStateChangeEvent;
+    // peerConnection.onicegatheringstatechange = handleICEGatheringStateChangeEvent;
+    // peerConnection.onsignalingstatechange = handleSignalingStateChangeEvent;
 
     this.peerConnection.onicecandidate = ({candidate}) => {
       console.log('[PROCTOR] Obtained an ICE Candidate: %o.', candidate);
@@ -97,28 +102,46 @@ class Student {
           // this.stop();
       }
     });
+  }
 
-    this.DOMContainer = null;
-    this.addedStreams = {};
-    this.peerConnection.ontrack = ({ streams: [stream] }) => {  // called once per track
+  async stop() { 
+    this.peerConnection.close();
+    if (this.timeoutHandle) window.clearTimeout(this.timeoutHandle);
+
+    await this.destructionCallback();
+    delete this;
+  }
+};
+
+class Student {
+  constructor(from, username) {
+    this.from = from;
+    this.username = username;
+
+    this.connections = {};
+
+    let s = document.createElement('div');
+    s.classList.add('student');
+    s.innerHTML = `<p>${this.username}</p>`;
+
+    let div = document.createElement('div');
+    div.classList.add('remote-video-container');
+    let videoContainer = document.querySelector('#video-container');
+    this.DOMContainer = div;
+
+    s.appendChild(div);
+    videoContainer.appendChild(s);
+  }
+
+  createNewConnection(src) {
+    let conn = new Connection();
+
+    conn.addedStreams = {};
+    conn.peerConnection.ontrack = ({ streams: [stream] }) => {  // called once per track
       // stream is the MediaStream that the current track (event.track) belongs to
       console.log('[PROCTOR] Received stream %o.', stream.getTracks());
-      if (stream.id in this.addedStreams) return;  // this stream is already added
-
-      if (this.DOMContainer === null) {
-        let s = document.createElement('div');
-        s.classList.add('student');
-        s.innerHTML = `<p>${this.username}</p>`;
-
-        let div = document.createElement('div');
-        div.classList.add('remote-video-container');
-        let videoContainer = document.querySelector('#video-container');
-        this.DOMContainer = div;
-
-        s.appendChild(div);
-        videoContainer.appendChild(s);
-      }
-      this.addedStreams[stream.id] = true;
+      if (stream.id in conn.addedStreams) return;  // this stream is already added
+      conn.addedStreams[stream.id] = true;
 
       let remoteVideo = document.createElement('video');
       remoteVideo.classList.add('remote-video');
@@ -127,13 +150,33 @@ class Student {
       //remoteVideo.load(); 
       remoteVideo.srcObject = stream;
 
+      conn.video = remoteVideo;
+
       this.DOMContainer.appendChild(remoteVideo);
     };
+
+    conn.destructionCallback = () => new Promise(async (resolve, reject) => {
+      await beep();
+      console.warn('[PROCTOR] %s has disconnected a remote stream.', this.username);
+      alert(this.username + ' has disconnected a stream.');
+
+      //let box = this.DOMContainer.parentNode;
+      //if (box && box.parentNode) box.parentNode.removeChild(box);
+
+      let box = conn.video;
+      if (box && box.parentNode) box.parentNode.removeChild(box);
+      //delete this; // this connection is now useless
+      resolve();
+    });
+
+    this.connections[src] = conn;
+
+    return conn;
   }
 
   async stop() { 
-    this.peerConnection.close();
-    if (this.timeoutHandle) window.clearTimeout(this.timeoutHandle);
+    //this.peerConnection.close();
+    //if (this.timeoutHandle) window.clearTimeout(this.timeoutHandle);
 
     await beep();
     console.warn('[PROCTOR] %s has disconnected from remote stream.', this.username);
@@ -171,8 +214,8 @@ socket.on('online users', data => {
 
 socket.on('candidate available', data => {
   console.log('[PROCTOR] Received candidate %o.', data);
-  if (!students[data.from]) return;
-  students[data.from].peerConnection.addIceCandidate(data.candidate);
+  if (!students[data.from.user]) return;
+  students[data.from.user].connections[data.from.socket].peerConnection.addIceCandidate(data.candidate);
 });
 
 let localStreams = [];
@@ -180,35 +223,42 @@ let localStreams = [];
 socket.on('available offer', async (data) => {
   console.log('[PROCTOR] Received an offer %o.', data);
 
-  let s = new Student(data.from, onlineUsers[data.from]); // get username
-  students[data.from] = s;
+  if (!students.hasOwnProperty(data.from.user)) {
+    students[data.from.user] = new Student(data.from.user, onlineUsers[data.from.user]); // get username
+    console.log('[PROCTOR] Created new student %s.', data.from.user)
+  }
+  let s = students[data.from.user];
+  let conn = s.createNewConnection(data.from.socket);
+  console.log('[PROCTOR] Created new connection for student %s.', data.from.user);
 
-  await s.peerConnection.setRemoteDescription(
+  await conn.peerConnection.setRemoteDescription(
     new RTCSessionDescription(data.offer)
   );
 
   let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   console.log('got stream %o', stream);
   stream.getTracks().forEach(track => {
-    console.log('add track %o of stream %o', track, stream);
-    s.peerConnection.addTrack(track, stream)
-  });
+    track.enabled = false;  // TODO: temporary muting
 
-  let trk = stream.getTracks()[0];
-  let talkButton = document.querySelector('#talk');
-  talkButton.onclick = evt => {
-    console.log('hello %o', trk);
-    if (talkButton.innerHTML == 'talk') trk.enabled = true, talkButton.innerHTML = 'shut';
-    else trk.enabled = false, talkButton.innerHTML = 'talk';
-  };
+    console.log('add track %o of stream %o', track, stream);
+    conn.rtpSender = conn.peerConnection.addTrack(track, stream)
+    // TODO: conn.rtpSender.replaceTrack(null) for muting
+
+    // Global muting
+    let talkButton = document.querySelector('#talk');
+    talkButton.onclick = evt => {
+      if (talkButton.innerHTML == 'talk') track.enabled = true, talkButton.innerHTML = 'mute';
+      else track.enabled = false, talkButton.innerHTML = 'talk';
+    };
+  });
 
   //localStreams.forEach(stream => stream.getTracks().forEach(track => {
   //  console.log('add track %o of stream %o', track, stream);
   //  s.peerConnection.addTrack(track, stream)
   //}));
 
-  const answer = await s.peerConnection.createAnswer({}); // no options yet
-  await s.peerConnection.setLocalDescription(new RTCSessionDescription(answer));
+  const answer = await conn.peerConnection.createAnswer({}); // no options yet
+  await conn.peerConnection.setLocalDescription(new RTCSessionDescription(answer));
 
   socket.emit('accept offer', {
     answer: answer,
