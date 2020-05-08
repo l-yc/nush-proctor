@@ -193,64 +193,77 @@ function addStream(stream) {
   }
 }
 
+function handleGetUserMediaError(err) {
+  console.log('error: ' + err);
+  switch(err.name) {
+    case 'NotFoundError':
+      alert('Unable to open your call because no camera and/or microphone' +
+        'were found.');
+      break;
+    case 'NotAllowedError':
+    case 'SecurityError':
+    case 'PermissionDeniedError':
+      // Do nothing; this is the same as the user canceling the call.
+      alert('You must enable your microphone to use this app.');
+      break;
+    default:
+      alert('Error opening your camera and/or microphone: ' + err.message);
+      break;
+  }
+}
+
 (async function() {
-  //let connectButton = document.querySelector('#connect');
-  //connectButton.addEventListener('click', event => socket.open());
   let connectButton = document.querySelector('#connect');
   let disconnectButton = document.querySelector('#disconnect');
-  connectButton.addEventListener('click', call);
-  disconnectButton.addEventListener('click', stop);
+  let shareCamera = document.getElementById('share-camera');
+  let shareScreen = document.getElementById('share-screen');
 
-  // Grab elements, create settings, etc.
+  connectButton.disabled = true;
+  disconnectButton.disabled = true;
 
-  // Get access to the camera!
-  // TODO: better compatibility? This only works on:
-  // Chrome >= 47
-  // Edge <= 18
-  // Firefox >= 33
-  // Opera >= 30
-  // Safari >= 11
-  // Android Webview >= 47
-  // Chrome for Android >= 47
-  // Firefox for Android >= 36
-  // Opera for Android >= 30
-  // Safari on iOS >= 11
-  // Samsung Internet >= 5.0
-  if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-    let userList = document.querySelector('#user-list');
-
-    let cameraVideo = null;
-    let shareCamera = document.getElementById('share-camera');
-    shareCamera.addEventListener('click', e => {
-      cameraVideo = document.getElementById('camera');
-      navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(function(stream) {
-        //cameraVideo.src = window.URL.createObjectURL(stream);
-        cameraVideo.srcObject = stream;
-        cameraVideo.play();
-
-        console.log('got stream %o', stream)
-        shareCamera.disabled = true;
-        addStream(stream);
-      }).catch(err => {
-        console.log('error: ' + err);
-      });
-    });
-
-    let screenVideo = null;
-    let shareScreen = document.getElementById('share-screen');
-    shareScreen.addEventListener('click', e => {
-      screenVideo = document.getElementById('screen');
-      navigator.mediaDevices.getDisplayMedia({ video: true }).then(function(stream) {
-        screenVideo.srcObject = stream
-        screenVideo.play();
-
-        shareScreen.disabled = true;
-        addStream(stream);
-      }).catch(err => {
-        console.log(err);
-      });
-    });
-  } else {
-    alert('your device is not supported');
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert('Your device is not supported.');
+    shareCamera.disabled = true;
+    shareScreen.disabled = true;
+    return;
   }
+
+  connectButton.addEventListener('click', e => {
+  connectButton.disabled = true;
+    disconnectButton.disabled = false;
+    call()
+  });
+
+  disconnectButton.addEventListener('click', e => {
+    connectButton.disabled = false;
+    disconnectButton.disabled = true;
+    stop();
+  });
+
+  shareCamera.addEventListener('click', e => {
+    let cameraVideo = document.getElementById('camera');
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
+      cameraVideo.srcObject = stream;
+      cameraVideo.play();
+
+      console.log('got stream %o', stream)
+      shareCamera.disabled = true;
+      connectButton.disabled = false;
+      addStream(stream);
+    })
+    .catch(handleGetUserMediaError);
+  });
+
+  shareScreen.addEventListener('click', e => {
+    let screenVideo = document.getElementById('screen');
+    navigator.mediaDevices.getDisplayMedia({ video: true }).then(stream => {
+      screenVideo.srcObject = stream
+      screenVideo.play();
+
+      shareScreen.disabled = true;
+      connectButton.disabled = false;
+      addStream(stream);
+    })
+    .catch(handleGetUserMediaError);
+  });
 })();

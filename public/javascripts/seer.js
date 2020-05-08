@@ -124,7 +124,7 @@ class Student {
 
     let s = document.createElement('div');
     s.classList.add('student');
-    s.innerHTML = `<p>${this.username}</p><button class="talk">Talk</button>`;
+    s.innerHTML = `<p>${this.username}</p><button class="talk">talk</button>`;
 
     // Local muting
     let talkButton = s.querySelector('.talk');
@@ -217,11 +217,6 @@ class Student {
 
 let students = {};
 
-let connectButton = document.querySelector('#connect');
-connectButton.addEventListener('click', e => {
-  socket.open();
-});
-
 let onlineUsers = {};
 socket.on('online users', data => {
   console.log('[PROCTOR] Online users: %o', data);
@@ -262,27 +257,20 @@ socket.on('available offer', async (data) => {
     new RTCSessionDescription(data.offer)
   );
 
-  let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  console.log('got stream %o', stream);
-  stream.getTracks().forEach(track => {
-    track.enabled = false;  // TODO: temporary muting
+  //let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  //console.log('got stream %o', stream);
+  //stream.getTracks().forEach(track => {
+  //  track.enabled = false;  // TODO: temporary muting
 
+  //  console.log('add track %o of stream %o', track, stream);
+  //  conn.rtpSender = conn.peerConnection.addTrack(track, stream)
+  //});
+
+  localStreams.forEach(stream => stream.getTracks().forEach(track => {
     console.log('add track %o of stream %o', track, stream);
     conn.rtpSender = conn.peerConnection.addTrack(track, stream)
-    // TODO: conn.rtpSender.replaceTrack(null) for muting
-
-    // Global muting
-    let talkButton = document.querySelector('#talk');
-    talkButton.onclick = evt => {
-      if (talkButton.innerHTML == 'talk') track.enabled = true, talkButton.innerHTML = 'mute';
-      else track.enabled = false, talkButton.innerHTML = 'talk';
-    };
-  });
-
-  //localStreams.forEach(stream => stream.getTracks().forEach(track => {
-  //  console.log('add track %o of stream %o', track, stream);
-  //  s.peerConnection.addTrack(track, stream)
-  //}));
+    conn.rtpSender.track.enabled = false;
+  }));
 
   const answer = await conn.peerConnection.createAnswer({}); // no options yet
   await conn.peerConnection.setLocalDescription(new RTCSessionDescription(answer));
@@ -298,33 +286,39 @@ socket.on('available offer', async (data) => {
 // MARK: attempt to support voice
 function addStream(stream) {
   localStreams.push(stream);
-  console.log('added stream yay');
-  //Object.keys(student).forEach(key => {
-  //  let pc = student[key];
-  //  console.log('[PROCTOR] Adding stream... %o', stream);
-  //  stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
-  //});
 }
 
-//(async function() {
-//  if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-//    let cameraVideo = null;
-//    let talkButton = document.querySelector('#talk');
-//
-//    talkButton.addEventListener('click', e => {
-//      soundOnly = document.getElementById('soundOnly');
-//      navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
-//        //cameraVideo.src = window.URL.createObjectURL(stream);
-//        //soundOnly.srcObject = stream;
-//        //soundOnly.play();
-//
-//        console.log('got stream %o', stream)
-//        addStream(stream);
-//      }).catch(err => {
-//        console.log('error: ' + err);
-//      });
-//    });
-//  } else {
-//    alert('your device is not supported');
-//  }
-//})();
+(async function() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert('Your device is not supported.');
+  }
+
+  let connectButton = document.querySelector('#connect');
+  connectButton.addEventListener('click', e => {
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+      console.log('got stream %o', stream)
+      addStream(stream);
+    })
+    .then(() => {
+      socket.open();
+    })
+    .catch(err => {
+      console.log('error: ' + err);
+      switch(err.name) {
+        case 'NotFoundError':
+          alert('Unable to open your call because no camera and/or microphone' +
+            'were found.');
+          break;
+        case 'NotAllowedError':
+        case 'SecurityError':
+        case 'PermissionDeniedError':
+          // Do nothing; this is the same as the user canceling the call.
+          alert('You must enable your microphone to use this app.');
+          break;
+        default:
+          alert('Error opening your camera and/or microphone: ' + err.message);
+          break;
+      }
+    });
+  });
+})();
