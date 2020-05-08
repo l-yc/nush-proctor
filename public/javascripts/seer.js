@@ -122,7 +122,25 @@ class Student {
 
     let s = document.createElement('div');
     s.classList.add('student');
-    s.innerHTML = `<p>${this.username}</p>`;
+    s.innerHTML = `<p>${this.username}</p><button class="talk">Talk</button>`;
+
+    // Local muting
+    let talkButton = s.querySelector('.talk');
+    talkButton.onclick = evt => {
+      if (talkButton.innerHTML == 'talk') {
+        Object.keys(this.connections).forEach(key => {
+          let conn = this.connections[key];
+          conn.rtpSender.track.enabled = true;
+        });
+        talkButton.innerHTML = 'mute';
+      } else {
+        Object.keys(this.connections).forEach(key => {
+          let conn = this.connections[key];
+          conn.rtpSender.track.enabled = false;
+        });
+        talkButton.innerHTML = 'talk';
+      }
+    };
 
     let div = document.createElement('div');
     div.classList.add('remote-video-container');
