@@ -183,7 +183,11 @@ class Student {
 
       let box = conn.video;
       if (box && box.parentNode) box.parentNode.removeChild(box);
-      //delete this; // this connection is now useless
+
+      if (Object.keys(this.connections).length === 1) {
+        this.stop();
+      }
+
       resolve();
     });
 
