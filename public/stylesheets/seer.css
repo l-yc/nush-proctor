@@ -4,9 +4,10 @@
   text-align: center;
 }
 
-#video-controls {
+#session-controls {
   display: flex;
   justify-content: center;
+  padding: 8px;
 }
 
 #video-container {
@@ -41,5 +42,21 @@
 }
 
 #online-users-container {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
   padding: 8px;
+}
+
+.flow.list {
+  display: flex;
+  margin: 8px 0;
+  flex-flow: row wrap;
+}
+
+.flow.list > .list-item {
+  padding: 2px 4px;
+  border: solid 2px black;
+  border-radius: 4px;
+  margin-right: 4px;
 }

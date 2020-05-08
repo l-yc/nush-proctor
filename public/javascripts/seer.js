@@ -222,14 +222,14 @@ socket.on('online users', data => {
   console.log('[PROCTOR] Online users: %o', data);
   onlineUsers = data;
 
-  let ul = document.querySelector('#online-users');
-  while (ul.firstChild) { ul.removeChild(ul.firstChild); }
+  let div = document.querySelector('#online-users');
+  while (div.firstChild) { div.removeChild(div.firstChild); }
   Object.keys(data).forEach(async (key) => {
-    let li = document.createElement('li');
-    li.classList.add('list-item');
-    li.innerHTML = data[key];
-    li.dataset.id = key;
-    ul.appendChild(li);
+    let i = document.createElement('div');
+    i.classList.add('list-item');
+    i.innerHTML = data[key];
+    i.dataset.id = key;
+    div.appendChild(i);
   });
 });
 
@@ -294,12 +294,17 @@ function addStream(stream) {
   }
 
   let connectButton = document.querySelector('#connect');
+  let disconnectButton = document.querySelector('#disconnect');
+  disconnectButton.disabled = true;
+
   connectButton.addEventListener('click', e => {
     navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
       console.log('got stream %o', stream)
       addStream(stream);
     })
     .then(() => {
+      connectButton.disabled = true;
+      disconnectButton.disabled = false;
       socket.open();
     })
     .catch(err => {
@@ -319,6 +324,19 @@ function addStream(stream) {
           alert('Error opening your camera and/or microphone: ' + err.message);
           break;
       }
+    });
+  });
+
+  disconnectButton.addEventListener('click', e => {
+    connectButton.disabled = false;
+    disconnectButton.disabled = true;
+    socket.close();
+    Object.keys(students).forEach(key => {
+      let s = students[key];
+      Object.keys(s.connections).forEach(key2 => {
+        let conn = s.connections[key2];
+        conn.stop();
+      });
     });
   });
 })();
