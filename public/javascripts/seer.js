@@ -43,9 +43,11 @@ socket.on('config', data => {
 });
 
 class Connection {
-  constructor() {
+  constructor(from) {
     this.peerConnection = new RTCPeerConnection(configuration);
     this.timeoutHandle = null;
+
+    this.from = from;
 
     // peerConnection.onicecandidate = handleICECandidateEvent;
     // peerConnection.ontrack = handleTrackEvent;
@@ -62,7 +64,7 @@ class Connection {
       console.log('sending candidate to ' + socket.id);
       socket.emit('submit candidate', { 
         candidate: candidate,
-        to: from
+        to: this.from
       });
     };
 
@@ -85,7 +87,7 @@ class Connection {
           this.timeoutHandle = window.setTimeout(() => {
             console.warn('[PROCTOR] Connection is unstable.');
             this.stop();
-          }, 15000);  // 15 second to reconnect
+          }, 1000);  // 15 second to reconnect // TODO: remember to change back
           break;
         case 'failed':
           console.warn('[PROCTOR] Connection failed.');
@@ -152,7 +154,7 @@ class Student {
   }
 
   createNewConnection(src) {
-    let conn = new Connection();
+    let conn = new Connection(src);
 
     conn.addedStreams = {};
     conn.peerConnection.ontrack = ({ streams: [stream] }) => {  // called once per track
@@ -184,7 +186,8 @@ class Student {
       let box = conn.video;
       if (box && box.parentNode) box.parentNode.removeChild(box);
 
-      if (Object.keys(this.connections).length === 1) {
+      delete this.connections[conn.from];
+      if (Object.keys(this.connections).length === 0) {
         this.stop();
       }
 
@@ -207,7 +210,8 @@ class Student {
     let box = this.DOMContainer.parentNode;
     if (box && box.parentNode) box.parentNode.removeChild(box);
 
-    delete this; // this connection is now useless
+    delete students[this.from];
+    delete this; // delete all references
   }
 };
 
@@ -245,7 +249,8 @@ let localStreams = [];
 socket.on('available offer', async (data) => {
   console.log('[PROCTOR] Received an offer %o.', data);
 
-  if (!students.hasOwnProperty(data.from.user)) {
+  console.log('[PROCTOR] Current student is %o', students[data.from.user]);
+  if (!students.hasOwnProperty(data.from.user) || !students[data.from.user]) {
     students[data.from.user] = new Student(data.from.user, onlineUsers[data.from.user]); // get username
     console.log('[PROCTOR] Created new student %s.', data.from.user)
   }
