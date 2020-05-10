@@ -1,32 +1,25 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <title>seer</title>
-    <link rel="stylesheet" href="/stylesheets/seer.css">
-  </head>
-  <body>
-    <!-- page content -->
-    <div>
-      <h1 class="title"><%= title %></h1>
-      <p id="message"></p>
-      <div id="online-users-container">
-        Online:
-        <div id="online-users" class="flow list">
-        </div>
-      </div>
-      <div id="session-controls">
-        <button id="connect">Connect</button>
-        <button id="disconnect">Disconnect</button>
-      </div>
-      <div id="student-container">
-        <!--<video class="remote-video" autoplay></video>-->
-      </div>
+<%- include('layouts/header') -%>
+
+<!-- page content -->
+<main id="seer">
+  <h1 class="title"><%= title %></h1>
+  <p id="signaling-state"></p>
+  <div id="online-users-container">
+    Online:
+    <div id="online-users" class="flow list">
     </div>
+  </div>
+  <div id="session-controls">
+    <button id="connect">Connect</button>
+    <button id="disconnect">Disconnect</button>
+  </div>
+  <div id="student-container">
+    <!--<video class="remote-video" autoplay></video>-->
+  </div>
+</main>
 
-    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
-    <script src='/socket.io/socket.io.js'></script>
-    <script src="/javascripts/seer.js"></script>
-  </body>
-</html>
+<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+<script src='/socket.io/socket.io.js'></script>
+<script src="/js/seer.js"></script>
 
+<%- include('layouts/footer') -%>

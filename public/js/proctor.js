@@ -10,12 +10,17 @@ let snd = new Audio('data:audio/mpeg;base64,SUQzBAAAAAABNFRJVDIAAAAPAAADUmVjb3Jk
 return snd.play();
 }
 
+function setStatus(connectionState) {
+  let connectionStateIndicator = document.querySelector('#connection-state');
+  connectionStateIndicator.innerHTML = `Status: <strong>${connectionState}</strong>`;
+}
+
 /* Signaling Server */
 const socket = io({
-  autoConnect: false
+  autoConnect: true // no need to call socket.open()
 });
 
-socket.on('connect', () => {
+socket.on('connect', event => {
   console.log('[PROCTOR] Connected to the signaling server.');
   socket.emit('login');
   console.log('[PROCTOR] Registered user.');
@@ -31,313 +36,234 @@ const { RTCPeerConnection, RTCSessionDescription } = window;
 
 let configuration = {
   iceServers: null,
-  iceTransportPolicy: 'all', // relay for TURN only
+  iceTransportPolicy: 'all',  // relay for TURN only
   iceCandidatePoolSize: 0
 };
 
+let seer = [];
+
 socket.on('config', data => {
   console.log('[PROCTOR] Obtained config: %o', data);
+  seer = data.seer;
   configuration.iceServers = data.iceServers;
-  let message = document.querySelector('#message');
-  message.innerHTML = `Logged in as <strong>${data.username}</strong>`;
+
+  let signalingStateIndicator = document.querySelector('#signaling-state');
+  signalingStateIndicator.innerHTML = `Logged in as <strong>${data.username}</strong>`;
 });
 
-class Connection {
-  constructor(from) {
-    this.peerConnection = new RTCPeerConnection(configuration);
-    this.timeoutHandle = null;
+let peerConnection = null;
+let timeoutHandle = null;
 
-    this.from = from;
+function createNewConnection() {
+  peerConnection = new RTCPeerConnection(configuration);
 
-    // peerConnection.onicecandidate = handleICECandidateEvent;
-    // peerConnection.ontrack = handleTrackEvent;
-    // peerConnection.onnegotiationneeded = handleNegotiationNeededEvent;
-    // peerConnection.onremovetrack = handleRemoveTrackEvent;
-    // peerConnection.oniceconnectionstatechange = handleICEConnectionStateChangeEvent;
-    // peerConnection.onicegatheringstatechange = handleICEGatheringStateChangeEvent;
-    // peerConnection.onsignalingstatechange = handleSignalingStateChangeEvent;
+  // myPeerConnection.onicecandidate = handleICECandidateEvent;
+  // myPeerConnection.ontrack = handleTrackEvent;
+  // myPeerConnection.onnegotiationneeded = handleNegotiationNeededEvent;
+  // myPeerConnection.onremovetrack = handleRemoveTrackEvent;
+  // myPeerConnection.oniceconnectionstatechange = handleICEConnectionStateChangeEvent;
+  // myPeerConnection.onicegatheringstatechange = handleICEGatheringStateChangeEvent;
+  // myPeerConnection.onsignalingstatechange = handleSignalingStateChangeEvent;
 
-    this.peerConnection.onicecandidate = ({candidate}) => {
-      console.log('[PROCTOR] Obtained an ICE Candidate: %o.', candidate);
-      if (candidate === null) return; // useless
-      if (candidate.candidate === '') return;
-      console.log('sending candidate to ' + socket.id);
-      socket.emit('submit candidate', { 
-        candidate: candidate,
-        to: this.from
-      });
-    };
-
-    this.peerConnection.addEventListener('connectionstatechange', event => {
-      console.log('[PROCTOR] Connection has changed: %o.', event);
-      console.log('[PROCTOR] Connection state:', this.peerConnection.connectionState);
-      switch (this.peerConnection.connectionState) {
-        case 'connected':
-          // Peers connected!
-          console.log('[PROCTOR] Connected to remote stream.');
-          if (this.timeoutHandle) {
-            // in your click function, call clearTimeout
-            window.clearTimeout(this.timeoutHandle);
-          } else {
-            alert('Connected!');
-          }
-          break;
-        case 'disconnected':
-          // in the example above, assign the result
-          this.timeoutHandle = window.setTimeout(() => {
-            console.warn('[PROCTOR] Connection is unstable.');
-            this.stop();
-          }, 15000);  // 15 second to reconnect
-          break;
-        case 'failed':
-          console.warn('[PROCTOR] Connection failed.');
-          this.stop();
-          break;
-        case 'closed':
-          // this is NOT fired on chrome, as per design specs
-          // https://github.com/w3c/webrtc-pc/issues/1020
-          // https://bugs.chromium.org/p/chromium/issues/detail?id=699036
-          // so I will be ignoring this from now on
-          // beep();
-          // console.warn('[PROCTOR] %s has disconnected from remote stream.', this.username);
-          // alert(this.username + ' has disconnected.');
-          // this.stop();
-      }
+  peerConnection.onicecandidate = ({candidate}) => {
+    console.log('[PROCTOR] Obtained an ICE Candidate %o.', candidate);
+    if (candidate === null) return; // useless
+    if (candidate.candidate === '') return;
+    socket.emit('submit candidate', { 
+      candidate: candidate,
+      to: seer
     });
-  }
+  };
 
-  async stop() { 
-    this.peerConnection.close();
-    if (this.timeoutHandle) window.clearTimeout(this.timeoutHandle);
+  peerConnection.ontrack = function({ streams: [stream] }) {
+    console.log('[PROCTOR] Received stream.');
+    let remoteAudio = document.getElementById("remote-audio");
+    if (remoteAudio) {
+      remoteAudio.srcObject = stream;
+      remoteAudio.play();
+      console.log('playing');
+    }
+  };
 
-    await this.destructionCallback();
-    delete this;
-  }
-};
+  // Listen for connectionstatechange on the local RTCPeerConnection
+  peerConnection.onconnectionstatechange = event => {
+    console.log('[PROCTOR] Connection has changed: %o', event);
+    console.log('[PROCTOR] Connection state:', peerConnection.connectionState);
+    console.assert(event.srcElement === peerConnection);
+    // new, connecting, connected, disconnected, failed or closed
+    setStatus(peerConnection.connectionState);
+    switch (peerConnection.connectionState) {
+      case 'connected':
+        // Peers connected!
+        console.log('[PROCTOR] Connected to remote stream.');
+        if (timeoutHandle) {
+          // in your click function, call clearTimeout
+          window.clearTimeout(timeoutHandle);
+        } else {
+          alert('Connected!');
+        }
+        break;
+      case 'disconnected':
+        // in the example above, assign the result
+        timeoutHandle = window.setTimeout(() => {
+          console.warn('[PROCTOR] Connection is unstable.');
+          stop();
+        }, 15000);  // 15 second to reconnect
+        break;
+      case 'failed':
+        console.warn('[PROCTOR] Connection failed.');
+        stop();
+        break;
+      case 'closed':
+        // this is NOT fired on chrome, as per design specs
+        // https://github.com/w3c/webrtc-pc/issues/1020
+        // https://bugs.chromium.org/p/chromium/issues/detail?id=699036
+        // so I will be ignoring this from now on
+        // beep();
+        // console.warn('[PROCTOR] Disconnected from remote stream.');
+        // alert('Disconnected! Your proctor has been notified.');
+        // timeoutHandle = null;
+    }
+  };
 
-class Student {
-  constructor(from, username) {
-    this.from = from;
-    this.username = username;
-
-    this.connections = {};
-
-    let s = document.createElement('div');
-    s.classList.add('student');
-
-    s.innerHTML = `<p class="student-info">${this.username}</p><button class="talk">talk</button>`;
-
-    // Local muting
-    let talkButton = s.querySelector('.talk');
-    talkButton.onclick = evt => {
-      if (talkButton.innerHTML == 'talk') {
-        Object.keys(this.connections).forEach(key => {
-          let conn = this.connections[key];
-          conn.rtpSender.track.enabled = true;
-        });
-        talkButton.innerHTML = 'mute';
-      } else {
-        Object.keys(this.connections).forEach(key => {
-          let conn = this.connections[key];
-          conn.rtpSender.track.enabled = false;
-        });
-        talkButton.innerHTML = 'talk';
-      }
-    };
-
-    let div = document.createElement('div');
-    div.classList.add('video-container');
-    let videoContainer = document.querySelector('#student-container');
-    this.DOMContainer = div;
-
-    s.appendChild(div);
-    videoContainer.appendChild(s);
-  }
-
-  createNewConnection(src) {
-    let conn = new Connection(src);
-
-    conn.addedStreams = {};
-    conn.peerConnection.ontrack = ({ streams: [stream] }) => {  // called once per track
-      // stream is the MediaStream that the current track (event.track) belongs to
-      console.log('[PROCTOR] Received stream %o.', stream.getTracks());
-      if (stream.id in conn.addedStreams) return;  // this stream is already added
-      conn.addedStreams[stream.id] = true;
-
-      let remoteVideo = document.createElement('video');
-      remoteVideo.classList.add('video');
-      remoteVideo.autoplay = true;
-      remoteVideo.controls = true;
-      //remoteVideo.load(); 
-      remoteVideo.srcObject = stream;
-
-      conn.video = remoteVideo;
-
-      this.DOMContainer.appendChild(remoteVideo);
-    };
-
-    conn.destructionCallback = () => new Promise(async (resolve, reject) => {
-      await beep();
-      console.warn('[PROCTOR] %s has disconnected a remote stream.', this.username);
-      alert(this.username + ' has disconnected a stream.');
-
-      //let box = this.DOMContainer.parentNode;
-      //if (box && box.parentNode) box.parentNode.removeChild(box);
-
-      let box = conn.video;
-      if (box && box.parentNode) box.parentNode.removeChild(box);
-
-      delete this.connections[conn.from];
-      if (Object.keys(this.connections).length === 0) {
-        this.stop();
-      }
-
-      resolve();
-    });
-
-    this.connections[src] = conn;
-
-    return conn;
-  }
-
-  async stop() { 
-    //this.peerConnection.close();
-    //if (this.timeoutHandle) window.clearTimeout(this.timeoutHandle);
-
-    await beep();
-    console.warn('[PROCTOR] %s has disconnected from remote stream.', this.username);
-    alert(this.username + ' has disconnected.');
-
-    let box = this.DOMContainer.parentNode;
-    if (box && box.parentNode) box.parentNode.removeChild(box);
-
-    delete students[this.from];
-    delete this; // delete all references
-  }
-};
-
-let students = {};
-
-let onlineUsers = {};
-socket.on('online users', data => {
-  console.log('[PROCTOR] Online users: %o', data);
-  onlineUsers = data;
-
-  let div = document.querySelector('#online-users');
-  while (div.firstChild) { div.removeChild(div.firstChild); }
-  Object.keys(data).forEach(async (key) => {
-    let i = document.createElement('div');
-    i.classList.add('list-item');
-    i.innerHTML = data[key];
-    i.dataset.id = key;
-    div.appendChild(i);
-  });
-});
-
-socket.on('candidate available', data => {
-  console.log('[PROCTOR] Received candidate %o.', data);
-  if (!students[data.from.user]) return;
-  students[data.from.user].connections[data.from.socket].peerConnection.addIceCandidate(data.candidate);
-});
+  console.log('[PROCTOR] Created new connection.');
+}
 
 let localStreams = [];
 
-socket.on('available offer', async (data) => {
-  console.log('[PROCTOR] Received an offer %o.', data);
+async function call() {
+  if (peerConnection) return; // already calling
+  setStatus('initiating call');
+  createNewConnection();
 
-  console.log('[PROCTOR] Current student is %o', students[data.from.user]);
-  if (!students.hasOwnProperty(data.from.user) || !students[data.from.user]) {
-    students[data.from.user] = new Student(data.from.user, onlineUsers[data.from.user]); // get username
-    console.log('[PROCTOR] Created new student %s.', data.from.user)
+  localStreams.forEach(stream => stream.getTracks().forEach(track => peerConnection.addTrack(track, stream)));
+
+  peerConnection.onnegotiationneeded = async () => {
+    const offer = await peerConnection.createOffer({
+      //offerToReceiveVideo: true,
+      offerToReceiveAudio: true
+    });
+    console.log('[PROCTOR] Created offer.');
+    await peerConnection.setLocalDescription(new RTCSessionDescription(offer));
+    console.log('[PROCTOR] Local description set.');
+
+    socket.emit('submit offer', {
+      offer: offer,
+      to: seer
+    });
+    console.log('[PROCTOR] Submitting offer.');
   }
-  let s = students[data.from.user];
-  let conn = s.createNewConnection(data.from.socket);
-  console.log('[PROCTOR] Created new connection for student %s.', data.from.user);
 
-  await conn.peerConnection.setRemoteDescription(
-    new RTCSessionDescription(data.offer)
-  );
-
-  //let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  //console.log('got stream %o', stream);
-  //stream.getTracks().forEach(track => {
-  //  track.enabled = false;  // TODO: temporary muting
-
-  //  console.log('add track %o of stream %o', track, stream);
-  //  conn.rtpSender = conn.peerConnection.addTrack(track, stream)
-  //});
-
-  localStreams.forEach(stream => stream.getTracks().forEach(track => {
-    console.log('add track %o of stream %o', track, stream);
-    conn.rtpSender = conn.peerConnection.addTrack(track, stream)
-    conn.rtpSender.track.enabled = false;
-  }));
-
-  const answer = await conn.peerConnection.createAnswer({}); // no options yet
-  await conn.peerConnection.setLocalDescription(new RTCSessionDescription(answer));
-
-  socket.emit('accept offer', {
-    answer: answer,
-    to: data.from
+  socket.on('offer accepted', async data => {
+    console.log('[PROCTOR] Offer accepted.');
+    await peerConnection.setRemoteDescription(
+      new RTCSessionDescription(data.answer)
+    );
+    console.log('[PROCTOR] Remote description set.');
   });
 
-  console.log('[PROCTOR] Accepted offer.');
-});
+  socket.on('candidate available', data => {
+    console.log('[PROCTOR] Received an ICE Candidate: %o', data);
+    if (data.candidate === null) return;
+    peerConnection.addIceCandidate(data.candidate);
+  }); 
+}
 
-// MARK: attempt to support voice
+async function stop() {
+  if (!peerConnection) return; // not calling
+  peerConnection.close();
+  if (timeoutHandle) window.clearTimeout(timeoutHandle);
+
+  await beep();
+  console.warn('[PROCTOR] Disconnected from remote stream.');
+  alert('Disconnected! Your proctor has been notified.');
+
+  setStatus('closed');
+
+  peerConnection = null;  // this connection is now useless
+  timeoutHandle = null;
+}
+
+/* UI Code */
 function addStream(stream) {
   localStreams.push(stream);
+  if (peerConnection) {
+    console.log('[PROCTOR] Adding stream... %o', stream);
+    stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+  }
+}
+
+function handleGetUserMediaError(err) {
+  console.log('error: ' + err);
+  switch(err.name) {
+    case 'NotFoundError':
+      alert('Unable to open your call because no camera and/or microphone' +
+        ' were found.');
+      break;
+    case 'NotAllowedError':
+    case 'SecurityError':
+    case 'PermissionDeniedError':
+      // Do nothing; this is the same as the user canceling the call.
+      alert('You must enable your microphone to use this app.');
+      break;
+    default:
+      alert('Error opening your camera and/or microphone: ' + err.message);
+      break;
+  }
 }
 
 (async function() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    alert('Your device is not supported.');
-  }
-
   let connectButton = document.querySelector('#connect');
   let disconnectButton = document.querySelector('#disconnect');
+  let shareCamera = document.getElementById('share-camera');
+  let shareScreen = document.getElementById('share-screen');
+
+  connectButton.disabled = true;
   disconnectButton.disabled = true;
 
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert('Your device is not supported.');
+    shareCamera.disabled = true;
+    shareScreen.disabled = true;
+    return;
+  }
+
   connectButton.addEventListener('click', e => {
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-      console.log('got stream %o', stream)
-      addStream(stream);
-    })
-    .then(() => {
-      connectButton.disabled = true;
-      disconnectButton.disabled = false;
-      socket.open();
-    })
-    .catch(err => {
-      console.log('error: ' + err);
-      switch(err.name) {
-        case 'NotFoundError':
-          alert('Unable to open your call because no camera and/or microphone' +
-            ' were found.');
-          break;
-        case 'NotAllowedError':
-        case 'SecurityError':
-        case 'PermissionDeniedError':
-          // Do nothing; this is the same as the user canceling the call.
-          alert('You must enable your microphone to use this app.');
-          break;
-        default:
-          alert('Error opening your camera and/or microphone: ' + err.message);
-          break;
-      }
-    });
+  connectButton.disabled = true;
+    disconnectButton.disabled = false;
+    call()
   });
 
   disconnectButton.addEventListener('click', e => {
     connectButton.disabled = false;
     disconnectButton.disabled = true;
-    socket.close();
-    Object.keys(students).forEach(key => {
-      let s = students[key];
-      Object.keys(s.connections).forEach(key2 => {
-        let conn = s.connections[key2];
-        conn.stop();
-      });
-    });
+    stop();
+  });
+
+  shareCamera.addEventListener('click', e => {
+    let cameraVideo = document.getElementById('camera');
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
+      cameraVideo.srcObject = stream;
+      cameraVideo.play();
+
+      console.log('got stream %o', stream)
+      shareCamera.disabled = true;
+      connectButton.disabled = false;
+      addStream(stream);
+    })
+    .catch(handleGetUserMediaError);
+  });
+
+  shareScreen.addEventListener('click', e => {
+    let screenVideo = document.getElementById('screen');
+    navigator.mediaDevices.getDisplayMedia({ video: true }).then(stream => {
+      screenVideo.srcObject = stream
+      screenVideo.play();
+
+      shareScreen.disabled = true;
+      connectButton.disabled = false;
+      addStream(stream);
+    })
+    .catch(handleGetUserMediaError);
   });
 })();
