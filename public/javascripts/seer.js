@@ -87,7 +87,7 @@ class Connection {
           this.timeoutHandle = window.setTimeout(() => {
             console.warn('[PROCTOR] Connection is unstable.');
             this.stop();
-          }, 1000);  // 15 second to reconnect // TODO: remember to change back
+          }, 15000);  // 15 second to reconnect
           break;
         case 'failed':
           console.warn('[PROCTOR] Connection failed.');
@@ -124,7 +124,8 @@ class Student {
 
     let s = document.createElement('div');
     s.classList.add('student');
-    s.innerHTML = `<p>${this.username}</p><button class="talk">talk</button>`;
+
+    s.innerHTML = `<p class="student-info">${this.username}</p><button class="talk">talk</button>`;
 
     // Local muting
     let talkButton = s.querySelector('.talk');
@@ -145,8 +146,8 @@ class Student {
     };
 
     let div = document.createElement('div');
-    div.classList.add('remote-video-container');
-    let videoContainer = document.querySelector('#video-container');
+    div.classList.add('video-container');
+    let videoContainer = document.querySelector('#student-container');
     this.DOMContainer = div;
 
     s.appendChild(div);
@@ -164,7 +165,7 @@ class Student {
       conn.addedStreams[stream.id] = true;
 
       let remoteVideo = document.createElement('video');
-      remoteVideo.classList.add('remote-video');
+      remoteVideo.classList.add('video');
       remoteVideo.autoplay = true;
       remoteVideo.controls = true;
       //remoteVideo.load(); 
@@ -312,7 +313,7 @@ function addStream(stream) {
       switch(err.name) {
         case 'NotFoundError':
           alert('Unable to open your call because no camera and/or microphone' +
-            'were found.');
+            ' were found.');
           break;
         case 'NotAllowedError':
         case 'SecurityError':

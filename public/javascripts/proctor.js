@@ -198,7 +198,7 @@ function handleGetUserMediaError(err) {
   switch(err.name) {
     case 'NotFoundError':
       alert('Unable to open your call because no camera and/or microphone' +
-        'were found.');
+        ' were found.');
       break;
     case 'NotAllowedError':
     case 'SecurityError':
