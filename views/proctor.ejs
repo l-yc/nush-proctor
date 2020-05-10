@@ -6,8 +6,9 @@
   client supports video/camera, but for the sake of illustrating the
   elements involved, they are created with markup (not JavaScript)
 -->
-<main id="#proctor">
-  <h1 class="title"><%= title %></h1>
+<%- include('partials/user') -%>
+<main id="proctor">
+  <h1 class="title"><%= sessionName %></h1>
   <p id="signaling-state"></p>
   <p id="connection-state"></p>
   <div id="video-controls">

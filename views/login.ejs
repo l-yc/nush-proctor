@@ -1,21 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <title>proctor</title>
-        <link rel="stylesheet" href="/stylesheets/login.css">
-    </head>
-    <body>
-      <div class="container">
-        <h1>Seer Login</h1> 
-        <form action="/login" method="POST">
-          <input type="text" name="username" placeholder="username">
-          <input type="password" name="password" placeholder="password">
-          <input type="submit" value="Login">
-        </form>
-        <p><%= message %></p>
-      </div>
-      <!--<script src="/javascripts/login.js"></script>-->
-    </body>
-</html>
+<%- include('layouts/header') -%>
 
+<main id="login">
+  <h1>Seer Login</h1> 
+  <form action="/login" method="POST">
+    <input type="text" name="username" placeholder="username">
+    <input type="password" name="password" placeholder="password">
+    <input type="submit" value="Login">
+  </form>
+  <p><%= message %></p>
+</main>
+<!--<script src="/javascripts/login.js"></script>-->
+
+<%- include('layouts/footer') -%>
