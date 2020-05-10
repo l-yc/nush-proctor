@@ -1,6 +1,4 @@
-@import url("base.css");
-
-#message {
+#signaling-state {
   text-align: center;
 }
 
@@ -35,7 +33,7 @@
   flex-flow: row wrap;
 }
 
-#student-container > .student > .video-container > .video {
+#student-container > .student > .video-container > video {
   width: 24vw;
   height: 13.5vw;
 }
