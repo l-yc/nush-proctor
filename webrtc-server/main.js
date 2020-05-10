@@ -33,7 +33,76 @@ function getIceServers(name) {
   };
 }
 
+async function fetchUserWithProctor(userId) {
+  return new Promise((resolve, reject) => {
+    User.findById(userId, function(err, _user) {
+      //console.log('got user %s %o %s %s', userId, _user, userId, socket.id);
+      if (err) reject(err);
+      else if (!_user) reject('cannot find user');
+      else {
+        user = {
+          id: _user._id,
+          username: _user.username,
+          role: _user.role
+        };
+
+        if (_user.assignedProctor) {
+          User.findOne({ username: _user.assignedProctor }, function(err, __user) {
+            if (err) reject(err);
+            if (!__user) reject(err);
+            user.seer = {
+              id: __user._id
+            }
+            resolve(user);
+          });
+        } else resolve(user);
+      }
+    });
+  });
+}
+
 module.exports = function(server, sessionMiddleware) {
+  // variables and functions
+  let online = {}; // TODO: if scaling, need a better storage 
+  let socketUserMap  = {};
+  let seerSocketMap = {};
+
+  function registerUser(socket, user) {
+    online[user.id] = user.username;  // Map of id to username. Ids are guaranteed to be unique
+    socketUserMap[socket.id] = user;
+    if (user.role === 'proctor') seerSocketMap[user.id] = socket.id; // TODO: assuming seer only has 1 device
+
+    socket.emit('config', {
+      iceServers: getIceServers(user.id).iceServers,
+      username: user.username
+    });
+    io.sockets.emit('online users', online);
+  }
+
+  function unregisterUser(socket, user) {
+    delete online[user.id];
+    delete socketUserMap[socket.id];
+    if (user.role === 'proctor') delete seerSocketMap[user.id];
+    io.sockets.emit('online users', online);
+  }
+
+  function getReceipient(srcSocket, destObj) {
+    let user = socketUserMap[srcSocket.id];
+    if (user.role === 'student') {
+      // Fixed destination for security
+      return {
+        socket: seerSocketMap[user.seer.id], // it's ok for seers to disconnect
+        user: user.seer.id                   // students can reconnect back easily
+      }                                      // once the seer reconnect
+    } else { // proctor
+      // for now, we'll trust the proctors
+      return destObj;                     // don't care if this socket still exists
+                                          // if it doesn't exist anymore, it will fail
+                                          // which is handled by client-side js
+    }
+  }
+
+  // server
   const io = require('socket.io')(server);
   console.log('setting up webrtc server');
 
@@ -42,11 +111,9 @@ module.exports = function(server, sessionMiddleware) {
     sessionMiddleware(socket.request, {}, next);
   })
 
-  let online = {};
-  let socketMap = {};
-  let seer = null;  // TODO: allow more than 1 seer
   io.on('connection', socket => {
     if (!socket.request.session || !socket.request.session.passport) {
+      console.log('Invalid connection: expired session or login.');
       socket.disconnect();
       return;
     }
@@ -58,66 +125,28 @@ module.exports = function(server, sessionMiddleware) {
 
       console.log(socket.id, userId, 'connected');
 
-      new Promise((resolve, reject) => {
-        User.findById(userId, function(err, _user) {
-          //console.log('got user %s %o %s %s', userId, _user, userId, socket.id);
-          if (err) reject(err);
-          else if (!_user) reject('cannot find user');
-          else {
-            user = {
-              id: _user._id,
-              username: _user.username,
-              role: _user.role
-            };
-
-            if (_user.assignedProctor) {
-              User.findOne({ username: _user.assignedProctor }, function(err, __user) {
-                if (err) reject(err);
-                if (!__user) reject(err);
-                user.seer = {
-                  socket: null, // we dont know this yet
-                  user: __user._id
-                }
-                resolve(user);
-              });
-            } else resolve(user);
-          }
-        });
-      }).then(_user => {
+      fetchUserWithProctor(userId).then(_user => {
         user = _user;
-
-        let credentials;
-        socketMap[user.id] = socket.id;  // TODO: need to give username also
-        online[user.id] = user.username;
-        socket.emit('config', {
-          iceServers: getIceServers(user.id).iceServers,
-          seer: (user.role === 'proctor' ? null : user.seer),
-          username: user.username
-        });
-        io.sockets.emit('online users', online);
-      }).catch(err => {
+        registerUser(socket, user);
+      })
+      .catch(err => {
         console.log(err);
         socket.disconnect();
       });
     });
 
     socket.on('disconnect', () => {
-      delete socketMap[user.id];
-      delete online[user.id];
-      io.sockets.emit('online users', online);
+      unregisterUser(socket, user);
     });
 
     socket.on('submit offer', function(data) {
-      //console.log('Offer received: %o', data);
       console.log('Offer received from %o', {
         socket: socket.id,
         user: user.id
       });
-      if (!data.to.socket) { // this only happens when sending to the seer
-        data.to.socket = socketMap[data.to.user]; // TODO: assuming seer only has 1 device
-      }
-      console.log('Forwarding offer to %o', data.to);
-      socket.to(data.to.socket).emit('available offer', {
+      let to = getReceipient(socket, data.to);
+      console.log('Forwarding offer to %o', to);
+      socket.to(to.socket).emit('available offer', {
         offer: data.offer,
         from: {
           socket: socket.id,
@@ -128,11 +157,9 @@ module.exports = function(server, sessionMiddleware) {
 
     socket.on('accept offer', function(data) {
       console.log('Offer accepted');
-      if (!data.to.socket) { // this only happens when sending to the seer
-        data.to.socket = socketMap[data.to.user]; // TODO: assuming seer only has 1 device
-      }
-      console.log('Answering %o', data.to);
-      socket.to(data.to.socket).emit('offer accepted', {
+      let to = getReceipient(socket, data.to);
+      console.log('Answering %o', to);
+      socket.to(to.socket).emit('offer accepted', {
         answer: data.answer,
         from: {
           socket: socket.id,
@@ -142,16 +169,13 @@ module.exports = function(server, sessionMiddleware) {
     });
 
     socket.on('submit candidate', function(data) {
-      //console.log('Candidate received from %s: %o', user.id, data.candidate);
       console.log('Candidate received from %o', {
         socket: socket.id,
         user: user.id
       });
-      if (!data.to.socket) { // this only happens when sending to the seer
-        data.to.socket = socketMap[data.to.user]; // TODO: assuming seer only has 1 device
-      }
-      console.log('Sending candidate to %o', data.to);
-      socket.to(data.to.socket).emit('candidate available', {
+      let to = getReceipient(socket, data.to);
+      console.log('Sending candidate to %o', to);
+      socket.to(to.socket).emit('candidate available', {
         candidate: data.candidate,
         from: {
           socket: socket.id,
