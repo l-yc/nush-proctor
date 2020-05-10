@@ -1,59 +1,61 @@
-#signaling-state {
-  text-align: center;
-}
+#seer {
+  #signaling-state {
+    text-align: center;
+  }
 
-#session-controls {
-  display: flex;
-  justify-content: center;
-  padding: 8px;
-}
+  #online-users-container {
+    display: flex;
+    flex-flow: column nowrap;
+    align-items: center;
+    padding: 8px;
+  }
 
-#student-container {
-  display: flex;
-  max-width: 100%;
-  flex-flow: row wrap;
-  justify-content: center;
-}
+  .flow.list {
+    display: flex;
+    margin: 8px 0;
+    flex-flow: row wrap;
+  }
 
-#student-container > .student {
-  display: flex;
-  max-width: 100%;
-  flex-flow: column nowrap;
-  box-shadow: 1px 1px 4px 0 #ccc;
-  border-radius: 2px;
-}
+  .flow.list > .list-item {
+    padding: 2px 4px;
+    border: solid 2px black;
+    border-radius: 4px;
+    margin-right: 4px;
+  }
 
-#student-container > .student > .student-info {
-  text-align: center;
-}
+  #session-controls {
+    display: flex;
+    justify-content: center;
+    padding: 8px;
+  }
 
-#student-container > .student > .video-container {
-  display: flex;
-  max-width: 49vw;
-  flex-flow: row wrap;
-}
+  #student-container {
+    display: flex;
+    max-width: 100%;
+    flex-flow: row wrap;
+    justify-content: center;
+  }
 
-#student-container > .student > .video-container > video {
-  width: 24vw;
-  height: 13.5vw;
-}
+  #student-container > .student {
+    display: flex;
+    max-width: 100%;
+    flex-flow: column nowrap;
+    box-shadow: 1px 1px 4px 0 #ccc;
+    border-radius: 2px;
+  }
 
-#online-users-container {
-  display: flex;
-  flex-flow: column nowrap;
-  align-items: center;
-  padding: 8px;
-}
+  #student-container > .student > .student-info {
+    text-align: center;
+  }
 
-.flow.list {
-  display: flex;
-  margin: 8px 0;
-  flex-flow: row wrap;
-}
+  #student-container > .student > .video-container {
+    display: flex;
+    max-width: 49vw;
+    flex-flow: row wrap;
+  }
 
-.flow.list > .list-item {
-  padding: 2px 4px;
-  border: solid 2px black;
-  border-radius: 4px;
-  margin-right: 4px;
+  #student-container > .student > .video-container > video {
+    width: 24vw;
+    height: 13.5vw;
+  }
 }
