@@ -1,28 +1,24 @@
-#signaling-state {
-  text-align: center;
-}
+#proctor {
+  #signaling-state {
+    text-align: center;
+  }
 
-#connection-state {
-  text-align: center;
-}
+  #connection-state {
+    text-align: center;
+  }
 
-.invert {
-  transform: rotateY(180deg);
-  -webkit-transform:rotateY(180deg); /* Safari and Chrome */
-  -moz-transform:rotateY(180deg); /* Firefox */
-}
+  #video-controls {
+    display: flex;
+    justify-content: center;
+  }
 
-#video-controls {
-  display: flex;
-  justify-content: center;
-}
+  #video-container {
+    display: flex;
+    flex-flow: row wrap;
+  }
 
-#video-container {
-  display: flex;
-  flex-flow: row wrap;
-}
-
-#camera, #screen {
-  width: 49vw;
-  height: 28.125vw;
+  #camera, #screen {
+    width: 49vw;
+    height: 28.125vw;
+  }
 }
