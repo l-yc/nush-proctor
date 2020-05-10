@@ -1,25 +1,34 @@
-var createError = require('http-errors');
+// imports
 var express = require('express');
-var path = require('path');
+var createError = require('http-errors');
 var cookieParser = require('cookie-parser');
-var logger = require('morgan');
-var expressSession = require('express-session');
+
+var session = require('express-session')
+var MemoryStore = require('memorystore')(session)
+
 var flash = require('connect-flash');
 
+var path = require('path');
+var logger = require('morgan');
+
 global.config = require('./deploy/config');
-var debug = require('debug')
+var debug = require('debug')('proctor:app');
 
 var app = express();
 
 // db setup
 var db = require('./models/db');
 
-let sessionMiddleware = expressSession({
-  secret: global.config.sessionSecret,
-  resave: false,
-  saveUninitialized: true,
+let sessionMiddleware = session({
   cookie: { secure: true },
-  key: 'express.sid'
+  key: 'express.sid',
+  resave: false,
+  secret: global.config.sessionSecret,
+  saveUninitialized: false,
+  store: new MemoryStore({
+    checkPeriod: 86400000 // prune expired entries every 24h
+  }),
+  unset: 'destroy'
 });
 
 db.connect().then(connection => {
@@ -53,7 +62,7 @@ db.connect().then(connection => {
   global.appRoot = path.resolve(__dirname);
 
   // Middleware manager
-  debug('Setting up middleware');
+  console.log('Setting up middleware');
   var middleware = require('./routes/middleware')(passport, acl);
   var indexRouter = require('./routes/index')(middleware);
   app.use('/', indexRouter);
