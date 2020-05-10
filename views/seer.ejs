@@ -1,8 +1,9 @@
 <%- include('layouts/header') -%>
 
+<%- include('partials/user') -%>
 <!-- page content -->
 <main id="seer">
-  <h1 class="title"><%= title %></h1>
+  <h1 class="title"><%= sessionName %></h1>
   <p id="signaling-state"></p>
   <div id="online-users-container">
     Online:
