@@ -10,14 +10,14 @@
   padding: 8px;
 }
 
-#video-container {
+#student-container {
   display: flex;
   max-width: 100%;
   flex-flow: row wrap;
   justify-content: center;
 }
 
-.student {
+#student-container > .student {
   display: flex;
   max-width: 100%;
   flex-flow: column nowrap;
@@ -25,17 +25,17 @@
   border-radius: 2px;
 }
 
-.student > p {
+#student-container > .student > .student-info {
   text-align: center;
 }
 
-.remote-video-container {
+#student-container > .student > .video-container {
   display: flex;
-  max-width: 100%;
-  flex-flow: column nowrap;
+  max-width: 49vw;
+  flex-flow: row wrap;
 }
 
-.remote-video {
+#student-container > .student > .video-container > .video {
   width: 24vw;
   height: 13.5vw;
 }
