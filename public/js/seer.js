@@ -79,7 +79,8 @@ class Connection {
             // in your click function, call clearTimeout
             window.clearTimeout(this.timeoutHandle);
           } else {
-            alert('Connected!');
+            console.log('[PROCTOR] Connected!');
+            //alert('Connected!');
           }
           break;
         case 'disconnected':
@@ -87,7 +88,7 @@ class Connection {
           this.timeoutHandle = window.setTimeout(() => {
             console.warn('[PROCTOR] Connection is unstable.');
             this.stop();
-          }, 15000);  // 15 second to reconnect
+          }, 1000);  // 15 second to reconnect
           break;
         case 'failed':
           console.warn('[PROCTOR] Connection failed.');
@@ -104,14 +105,19 @@ class Connection {
           // this.stop();
       }
     });
+
+    this.video = [];
   }
 
   async stop() { 
     this.peerConnection.close();
     if (this.timeoutHandle) window.clearTimeout(this.timeoutHandle);
 
-    await this.destructionCallback();
+    console.log('destroying a remote stream...');
+    let cb = await this.destructionCallback();
+    console.log('deleting the remote stream...');
     delete this;
+    if (cb) cb();
   }
 };
 
@@ -133,13 +139,15 @@ class Student {
       if (talkButton.innerHTML == 'talk') {
         Object.keys(this.connections).forEach(key => {
           let conn = this.connections[key];
-          conn.rtpSender.track.enabled = true;
+          conn.rtpSender.replaceTrack(conn.track);
+          //conn.rtpSender.track.enabled = true;
         });
         talkButton.innerHTML = 'mute';
       } else {
         Object.keys(this.connections).forEach(key => {
           let conn = this.connections[key];
-          conn.rtpSender.track.enabled = false;
+          conn.rtpSender.replaceTrack(null);
+          //conn.rtpSender.track.enabled = false;
         });
         talkButton.innerHTML = 'talk';
       }
@@ -170,7 +178,7 @@ class Student {
       //remoteVideo.load(); 
       remoteVideo.srcObject = stream;
 
-      conn.video = remoteVideo;
+      conn.video.push(remoteVideo);
 
       this.DOMContainer.appendChild(remoteVideo);
     };
@@ -178,23 +186,27 @@ class Student {
     conn.destructionCallback = () => new Promise(async (resolve, reject) => {
       await beep();
       console.warn('[PROCTOR] %s has disconnected a remote stream.', this.username);
-      alert(this.username + ' has disconnected a stream.');
+      //alert(this.username + ' has disconnected a stream.');
 
-      //let box = this.DOMContainer.parentNode;
-      //if (box && box.parentNode) box.parentNode.removeChild(box);
+      conn.video.forEach(remoteVideo => {
+        this.DOMContainer.removeChild(remoteVideo);
+      });
 
-      let box = conn.video;
-      if (box && box.parentNode) box.parentNode.removeChild(box);
-
-      delete this.connections[conn.from];
+      console.log('maybe deleting connection with %s', conn.from);
+      if (this.connections[conn.from] === conn) delete this.connections[conn.from];
+      let cb = () => {};
+      console.log('i have %d connections', Object.keys(this.connections).length);
       if (Object.keys(this.connections).length === 0) {
-        this.stop();
+        cb = () => this.stop();
       }
-
-      resolve();
+      console.log('passing cb %o', cb);
+      resolve(cb);
     });
 
+    console.log('added connection with %s', conn.from);
+    let oldConn = this.connections[src];
     this.connections[src] = conn;
+    if (oldConn) oldConn.stop();
 
     return conn;
   }
@@ -205,7 +217,7 @@ class Student {
 
     await beep();
     console.warn('[PROCTOR] %s has disconnected from remote stream.', this.username);
-    alert(this.username + ' has disconnected.');
+    //alert(this.username + ' has disconnected.');
 
     let box = this.DOMContainer.parentNode;
     if (box && box.parentNode) box.parentNode.removeChild(box);
@@ -227,7 +239,7 @@ socket.on('online users', data => {
   Object.keys(data).forEach(async (key) => {
     let i = document.createElement('div');
     i.classList.add('list-item');
-    i.innerHTML = data[key];
+    i.innerHTML = data[key].username;
     i.dataset.id = key;
     div.appendChild(i);
   });
@@ -246,7 +258,7 @@ socket.on('available offer', async (data) => {
 
   console.log('[PROCTOR] Current student is %o', students[data.from.user]);
   if (!students.hasOwnProperty(data.from.user) || !students[data.from.user]) {
-    students[data.from.user] = new Student(data.from.user, onlineUsers[data.from.user]); // get username
+    students[data.from.user] = new Student(data.from.user, onlineUsers[data.from.user].username); // get username
     console.log('[PROCTOR] Created new student %s.', data.from.user)
   }
   let s = students[data.from.user];
@@ -269,7 +281,9 @@ socket.on('available offer', async (data) => {
   localStreams.forEach(stream => stream.getTracks().forEach(track => {
     console.log('add track %o of stream %o', track, stream);
     conn.rtpSender = conn.peerConnection.addTrack(track, stream)
-    conn.rtpSender.track.enabled = false;
+    //conn.rtpSender.track.enabled = false;
+    conn.track = conn.rtpSender.track;
+    conn.rtpSender.replaceTrack(null, stream);
   }));
 
   const answer = await conn.peerConnection.createAnswer({}); // no options yet
