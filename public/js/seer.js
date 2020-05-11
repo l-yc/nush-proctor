@@ -31,7 +31,7 @@ const { RTCPeerConnection, RTCSessionDescription } = window;
 
 let configuration = {
   iceServers: null,
-  iceTransportPolicy: 'all', // relay for TURN only
+  iceTransportPolicy: 'relay', // relay for TURN only
   iceCandidatePoolSize: 0
 };
 
@@ -277,7 +277,7 @@ socket.on('available offer', async (data) => {
 
   socket.emit('accept offer', {
     answer: answer,
-    to: data.from
+    to: data.from.socket
   });
 
   console.log('[PROCTOR] Accepted offer.');
