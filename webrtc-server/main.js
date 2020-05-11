@@ -64,11 +64,18 @@ async function fetchUserWithProctor(userId) {
 module.exports = function(server, sessionMiddleware) {
   // variables and functions
   let online = {}; // TODO: if scaling, need a better storage 
-  let socketUserMap  = {};
+  let socketUserMap = {};
   let seerSocketMap = {};
 
   function registerUser(socket, user) {
-    online[user.id] = user.username;  // Map of id to username. Ids are guaranteed to be unique
+    if (online.hasOwnProperty(user.id)) {
+      online[user.id].count += 1;
+    } else {
+      online[user.id] = {
+        username: user.username,
+        count: 1
+      };  // Map of id to username. Ids are guaranteed to be unique
+    }
     socketUserMap[socket.id] = user;
     if (user.role === 'proctor') seerSocketMap[user.id] = socket.id; // TODO: assuming seer only has 1 device
 
@@ -80,7 +87,9 @@ module.exports = function(server, sessionMiddleware) {
   }
 
   function unregisterUser(socket, user) {
-    delete online[user.id];
+    if (--online[user.id].count === 0) {
+      delete online[user.id];
+    }
     delete socketUserMap[socket.id];
     if (user.role === 'proctor') delete seerSocketMap[user.id];
     io.sockets.emit('online users', online);
