@@ -1,15 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Rubik&display=swap');
 
+* {
+  /*border: solid 2px red;*/
+  box-sizing: border-box;
+}
+
 html, body {
   margin: 0;
   padding: 0;
   height: 100%;
   border: none;
   font-family: 'Rubik', 'sans-serif';
-}
-
-* {
-  /*border: solid 2px red;*/
 }
 
 .title {
