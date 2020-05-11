@@ -36,15 +36,12 @@ const { RTCPeerConnection, RTCSessionDescription } = window;
 
 let configuration = {
   iceServers: null,
-  iceTransportPolicy: 'all',  // relay for TURN only
+  iceTransportPolicy: 'relay',  // relay for TURN only
   iceCandidatePoolSize: 0
 };
 
-let seer = [];
-
 socket.on('config', data => {
   console.log('[PROCTOR] Obtained config: %o', data);
-  seer = data.seer;
   configuration.iceServers = data.iceServers;
 
   let signalingStateIndicator = document.querySelector('#signaling-state');
@@ -71,7 +68,7 @@ function createNewConnection() {
     if (candidate.candidate === '') return;
     socket.emit('submit candidate', { 
       candidate: candidate,
-      to: seer
+      to: null
     });
   };
 
@@ -149,7 +146,7 @@ async function call() {
 
     socket.emit('submit offer', {
       offer: offer,
-      to: seer
+      to: null
     });
     console.log('[PROCTOR] Submitting offer.');
   }
@@ -203,8 +200,7 @@ function handleGetUserMediaError(err) {
     case 'NotAllowedError':
     case 'SecurityError':
     case 'PermissionDeniedError':
-      // Do nothing; this is the same as the user canceling the call.
-      alert('You must enable your microphone to use this app.');
+      alert('You must enable your camera/microphone/screen to use this app.');
       break;
     default:
       alert('Error opening your camera and/or microphone: ' + err.message);

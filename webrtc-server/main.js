@@ -86,19 +86,21 @@ module.exports = function(server, sessionMiddleware) {
     io.sockets.emit('online users', online);
   }
 
-  function getReceipient(srcSocket, destObj) {
-    let user = socketUserMap[srcSocket.id];
+  function getReceipient(srcSocketId, destSocketId) {
+    console.log('Fetching receipient of %o using %o', srcSocketId, destSocketId);
+    let user = socketUserMap[srcSocketId];
     if (user.role === 'student') {
       // Fixed destination for security
       return {
         socket: seerSocketMap[user.seer.id], // it's ok for seers to disconnect
         user: user.seer.id                   // students can reconnect back easily
-      }                                      // once the seer reconnect
+      };                                     // once the seer reconnect
     } else { // proctor
       // for now, we'll trust the proctors
-      return destObj;                     // don't care if this socket still exists
-                                          // if it doesn't exist anymore, it will fail
-                                          // which is handled by client-side js
+      return {
+        socket: destSocketId,                // don't care if this socket still exists
+        user: socketUserMap[destSocketId].id // if it doesn't exist anymore, it will fail
+      };                                     // which is handled by client-side js
     }
   }
 
@@ -144,7 +146,7 @@ module.exports = function(server, sessionMiddleware) {
         socket: socket.id,
         user: user.id
       });
-      let to = getReceipient(socket, data.to);
+      let to = getReceipient(socket.id, data.to);
       console.log('Forwarding offer to %o', to);
       socket.to(to.socket).emit('available offer', {
         offer: data.offer,
@@ -157,7 +159,7 @@ module.exports = function(server, sessionMiddleware) {
 
     socket.on('accept offer', function(data) {
       console.log('Offer accepted');
-      let to = getReceipient(socket, data.to);
+      let to = getReceipient(socket.id, data.to);
       console.log('Answering %o', to);
       socket.to(to.socket).emit('offer accepted', {
         answer: data.answer,
@@ -173,7 +175,7 @@ module.exports = function(server, sessionMiddleware) {
         socket: socket.id,
         user: user.id
       });
-      let to = getReceipient(socket, data.to);
+      let to = getReceipient(socket.id, data.to);
       console.log('Sending candidate to %o', to);
       socket.to(to.socket).emit('candidate available', {
         candidate: data.candidate,
