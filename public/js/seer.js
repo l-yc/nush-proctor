@@ -43,19 +43,16 @@ socket.on('config', data => {
 });
 
 class Connection {
+  
   constructor(from) {
+    // stupid static variable incomptabilities
+    // so this is now a member variable
+    this.MAX_TIMEOUT = 1000; // 15 second to reconnect
+
     this.peerConnection = new RTCPeerConnection(configuration);
     this.timeoutHandle = null;
 
     this.from = from;
-
-    // peerConnection.onicecandidate = handleICECandidateEvent;
-    // peerConnection.ontrack = handleTrackEvent;
-    // peerConnection.onnegotiationneeded = handleNegotiationNeededEvent;
-    // peerConnection.onremovetrack = handleRemoveTrackEvent;
-    // peerConnection.oniceconnectionstatechange = handleICEConnectionStateChangeEvent;
-    // peerConnection.onicegatheringstatechange = handleICEGatheringStateChangeEvent;
-    // peerConnection.onsignalingstatechange = handleSignalingStateChangeEvent;
 
     this.peerConnection.onicecandidate = ({candidate}) => {
       console.log('[PROCTOR] Obtained an ICE Candidate: %o.', candidate);
@@ -68,7 +65,7 @@ class Connection {
       });
     };
 
-    this.peerConnection.addEventListener('connectionstatechange', event => {
+    this.peerConnection.onconnectionstatechange = event => {
       console.log('[PROCTOR] Connection has changed: %o.', event);
       console.log('[PROCTOR] Connection state:', this.peerConnection.connectionState);
       switch (this.peerConnection.connectionState) {
@@ -88,7 +85,7 @@ class Connection {
           this.timeoutHandle = window.setTimeout(() => {
             console.warn('[PROCTOR] Connection is unstable.');
             this.stop();
-          }, 1000);  // 15 second to reconnect
+          }, this.MAX_TIMEOUT); 
           break;
         case 'failed':
           console.warn('[PROCTOR] Connection failed.');
@@ -99,12 +96,9 @@ class Connection {
           // https://github.com/w3c/webrtc-pc/issues/1020
           // https://bugs.chromium.org/p/chromium/issues/detail?id=699036
           // so I will be ignoring this from now on
-          // beep();
-          // console.warn('[PROCTOR] %s has disconnected from remote stream.', this.username);
-          // alert(this.username + ' has disconnected.');
-          // this.stop();
+          break;
       }
-    });
+    };
 
     this.video = [];
   }
