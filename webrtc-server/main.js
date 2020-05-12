@@ -147,6 +147,7 @@ module.exports = function(server, sessionMiddleware) {
     });
 
     socket.on('disconnect', () => {
+      console.log(socket.id, user.id, 'disconnected');
       unregisterUser(socket, user);
     });
 
