@@ -87,11 +87,13 @@ module.exports = function(server, sessionMiddleware) {
   }
 
   function unregisterUser(socket, user) {
-    if (--online[user.id].count === 0) {
-      delete online[user.id];
-    }
     delete socketUserMap[socket.id];
-    if (user.role === 'proctor') delete seerSocketMap[user.id];
+    if (user) {
+      if (--online[user.id].count === 0) {
+        delete online[user.id];
+      }
+      if (user.role === 'proctor') delete seerSocketMap[user.id];
+    }
     io.sockets.emit('online users', online);
   }
 
@@ -147,7 +149,7 @@ module.exports = function(server, sessionMiddleware) {
     });
 
     socket.on('disconnect', () => {
-      console.log(socket.id, user.id, 'disconnected');
+      if (user) console.log(socket.id, user.id, 'disconnected');
       unregisterUser(socket, user);
     });
 
