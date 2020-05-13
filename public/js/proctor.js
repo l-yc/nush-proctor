@@ -2,8 +2,13 @@
 console.clear();
 
 function reportError(errMessage) {
-  log_error(`Error ${errMessage.name}: ${errMessage.message}`);
+  //console.log(`Error ${errMessage.name}: ${errMessage.message}`);
+  let fakeconsole = document.querySelector('#fakeconsole');
+  fakeconsole.innerText += `Error ${errMessage.name}: ${errMessage.message}\n`;
 }
+
+let fakeconsole = document.querySelector('#fakeconsole');
+fakeconsole.innerText += `Starting...`;
 
 async function beep() {
   // https://freesound.org/data/previews/467/467882_5487341-lq.mp3
@@ -79,6 +84,7 @@ class Connection {
     this.peerConnection.close();
     if (this.timeoutHandle) window.clearTimeout(this.timeoutHandle);
 
+    console.log('con state is now', this.peerConnection.connectionState);
     await beep();
     console.warn('[PROCTOR] Disconnected from remote stream.');
     alert('Disconnected! Your proctor has been notified.');
@@ -100,16 +106,17 @@ class Connection {
   }
 
   handleOnTrackEvent({ streams: [stream] }) {
-    console.log('[PROCTOR] Received stream.');
+    console.log('[PROCTOR] Received stream. %o', stream);
+    if (!stream) return; // ??? firefox 76.0+ is giving undefined streams
+                         // i dont know why it happens, but this fixes it
     let remoteAudio = document.getElementById("remote-audio");
     if (remoteAudio) {
       remoteAudio.srcObject = stream;
+      //remoteAudio.load();
       remoteAudio.play()
         .then(() => {
           console.log('playing');
-        }).catch(err => {
-          console.log(err);
-        });
+        }).catch(reportError);
     }
   }
 
@@ -188,7 +195,7 @@ socket.on('candidate available', data => {
 let localStreams = [];
 
 async function call() {
-  if (conn && conn.peerConnection.connectionState !== 'closed') return; // already calling
+  if (conn && conn.peerConnection) return; // already calling
   setStatus('initiating call');
 
   conn = new Connection(null); // no source because we're initiating the call
@@ -207,6 +214,7 @@ function addStream(stream) {
 }
 
 function handleGetUserMediaError(err) {
+  reportError(err);
   console.log('error: ' + err);
   switch(err.name) {
     case 'NotFoundError':
