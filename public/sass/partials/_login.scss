@@ -1,8 +1,39 @@
 #login {
-  padding: 8px 32px;
+  height: 100%;
+  width: 100%;
+
+  display: flex;
+  flex-flow: column nowrap;
+
+  justify-content: center;
+  align-items: center;
+
+  #login-form {
+    .badge {
+      margin: auto;
+      margin-top: -64px;
+      background-color: palette(background);
+      padding: 16px;
+      border: solid 2px palette(theme);
+      border-radius: 50%;
+      box-shadow: 1px 1px 2px 2px palette(background-dark);
+    }
+  }
+
+  @media only screen and (min-width: 768px) {
+    // For desktop
+    #login-form {
+      width: 400px;
+      box-shadow: 1px 1px 4px 2px palette(background-dark);
+    }
+  }
 
   @media only screen and (max-width: 768px) {
-    /* For mobile phones: */
+    // For mobile phones
+    #login-form {
+      width: 100%;
+    }
+
     form input {
       width: 100%;
       min-height: 48px;
