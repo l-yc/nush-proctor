@@ -25,7 +25,7 @@
     justify-content: center;
   }
 
-  #camera, #screen {
+  #share-camera, #share-screen, #camera, #screen {
     //flex-shrink: 1;
     //flex-grow: 1;
     margin: 1em;
@@ -35,9 +35,9 @@
 
   @media only screen and (max-width: 768px) {
     /* For mobile phones: */
-    #camera, #screen {
-      width: calc(100% - 4em);
-      height: auto;
+    #share-camera, #share-screen, #camera, #screen {
+      width: calc(100vw - 4em);
+      height: calc((100vw - 4em) * 9/16;
     }
   }
 }
