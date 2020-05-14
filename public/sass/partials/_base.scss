@@ -11,16 +11,21 @@ html, body {
   height: 100%;
   border: none;
   font-family: 'Rubik', 'sans-serif';
+  color: palette(text);
+}
+
+.feather {
+  //width: 24px;
+  //height: 24px;
+  stroke: currentColor;
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
 }
 
 .title {
   text-align: center;
-}
-
-video.invert {
-  transform: rotateY(180deg);
-  -webkit-transform:rotateY(180deg); /* Safari and Chrome */
-  -moz-transform:rotateY(180deg); /* Firefox */
 }
 
 a {

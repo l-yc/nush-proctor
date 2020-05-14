@@ -9,23 +9,34 @@
 
   #video-controls {
     display: flex;
+    flex-flow: row wrap;
     justify-content: center;
+
+    .btn {
+      margin: 0.2em 0.4em;
+    }
   }
 
   #video-container {
+    width: 100%;
+
     display: flex;
     flex-flow: row wrap;
+    justify-content: center;
   }
 
   #camera, #screen {
-    width: 49vw;
-    height: 28.125vw;
+    //flex-shrink: 1;
+    //flex-grow: 1;
+    margin: 1em;
+    width: calc(50vw - 4em);
+    height: calc((50vw - 4em) * 9/16);
   }
 
   @media only screen and (max-width: 768px) {
     /* For mobile phones: */
     #camera, #screen {
-      width: 100%;
+      width: calc(100% - 4em);
       height: auto;
     }
   }
