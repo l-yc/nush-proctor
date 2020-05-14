@@ -27,6 +27,10 @@
     display: flex;
     justify-content: center;
     padding: 8px;
+
+    .btn {
+      margin: 0.2em 0.4em;
+    }
   }
 
   #student-container {
@@ -34,28 +38,34 @@
     max-width: 100%;
     flex-flow: row wrap;
     justify-content: center;
-  }
 
-  #student-container > .student {
-    display: flex;
-    max-width: 100%;
-    flex-flow: column nowrap;
-    box-shadow: 1px 1px 4px 0 #ccc;
-    border-radius: 2px;
-  }
+    .student {
+      display: flex;
+      max-width: 100%;
+      flex-flow: column nowrap;
+      box-shadow: 1px 1px 4px 0 #ccc;
+      border-radius: 2px;
 
-  #student-container > .student > .student-info {
-    text-align: center;
-  }
+      .student-info {
+        text-align: center;
+      }
 
-  #student-container > .student > .video-container {
-    display: flex;
-    max-width: 49vw;
-    flex-flow: row wrap;
-  }
+      .talk {
+        margin: 0.3em;
+      }
 
-  #student-container > .student > .video-container > video {
-    width: 24vw;
-    height: 13.5vw;
+      .video-container {
+        display: flex;
+        max-width: 49vw;
+        flex-flow: row wrap;
+        justify-content: space-around;
+
+        video {
+          width: calc(24vw - 1em);
+          height: calc((24vw - 1em) * 9/16);
+          margin: 0.3em;
+        }
+      }
+    }
   }
 }
