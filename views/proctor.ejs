@@ -12,16 +12,17 @@
   <p id="signaling-state"></p>
   <p id="connection-state"></p>
   <div id="video-controls">
-    <button id="share-camera" class="basic icon btn"><i class="las la-video la-lg"></i>Camera</button>
-    <button id="share-screen" class="basic icon btn"><i class="las la-desktop la-lg"></i>Screen</button>
     <button id="connect" class="basic icon btn"><i class="las la-phone la-lg"></i>Join</button>
     <button id="disconnect" class="basic icon btn"><i class="las la-phone-slash la-lg"></i>Hang up</button>
   </div>
   <div id="video-container">
-    <video class="invert" id="camera" autoplay muted></video>
-    <video id="screen" autoplay></video>
+    <button id="share-camera" class="basic icon btn"><i class="las la-video la-lg"></i>Share Camera</button>
+    <!--<video class="invert" id="camera" autoplay muted></video>-->
+    <button id="share-screen" class="basic icon btn"><i class="las la-desktop la-lg"></i>Share Screen</button>
+    <!--<video id="screen" autoplay></video>-->
   </div>
   <audio id="remote-audio" autoplay></audio>
+  <!--<div id="fakeconsole"></div>-->
 </main>
 
 <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
