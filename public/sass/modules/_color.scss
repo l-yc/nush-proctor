@@ -1,0 +1,12 @@
+$theme-color: #009a90;
+$background-color: #fff;
+
+$palette: (
+  theme: $theme-color,
+  background: $background-color,
+  background-dark: mix($background-color, #000, 85%)
+);
+
+@function palette($name: transparent) {
+  @return map-get($palette, $name);
+}

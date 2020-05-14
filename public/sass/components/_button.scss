@@ -1,0 +1,14 @@
+.btn {
+  background-color: palette(theme);
+  color: palette(background);
+  border: solid 2px palette(theme);
+  border-radius: 2px;
+  transition: all 0.2s ease-in-out;
+
+  &:hover, &:active, &:focus {
+    background-color: palette(background);
+    color: palette(theme);
+    //transition: all 0.2s ease-in-out;
+    cursor: pointer;
+  }
+}
