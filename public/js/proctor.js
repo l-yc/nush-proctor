@@ -2,13 +2,13 @@
 console.clear();
 
 function reportError(errMessage) {
-  //console.log(`Error ${errMessage.name}: ${errMessage.message}`);
-  let fakeconsole = document.querySelector('#fakeconsole');
-  fakeconsole.innerText += `Error ${errMessage.name}: ${errMessage.message}\n`;
+  console.log(`Error ${errMessage.name}: ${errMessage.message}`);
+  //let fakeconsole = document.querySelector('#fakeconsole');
+  //fakeconsole.innerText += `Error ${errMessage.name}: ${errMessage.message}\n`;
 }
 
-let fakeconsole = document.querySelector('#fakeconsole');
-fakeconsole.innerText += `Starting...`;
+//let fakeconsole = document.querySelector('#fakeconsole');
+//fakeconsole.innerText += `Starting...`;
 
 async function beep() {
   // https://freesound.org/data/previews/467/467882_5487341-lq.mp3
@@ -262,7 +262,10 @@ function handleGetUserMediaError(err) {
 
   shareCamera.addEventListener('click', e => {
     let cameraVideo = document.getElementById('camera');
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
+    navigator.mediaDevices.getUserMedia({ 
+      video: { aspectRatio: 1920/1080 }, 
+      audio: { noiseSuppression: true, echoCancellation: true }
+    }).then(stream => {
       cameraVideo.srcObject = stream;
       cameraVideo.play();
 
@@ -270,7 +273,8 @@ function handleGetUserMediaError(err) {
       shareCamera.disabled = true;
       connectButton.disabled = false;
       addStream(stream);
-    })
+    
+      })
     .catch(handleGetUserMediaError);
   });
 

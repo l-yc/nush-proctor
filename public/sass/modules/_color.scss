@@ -1,10 +1,14 @@
 $theme-color: #009a90;
+$theme-secondary-color: #323b45;
 $background-color: #fff;
+$text-color: $theme-secondary-color;
 
 $palette: (
   theme: $theme-color,
+  theme-filter: mix($theme-color, transparent, 10%),
   background: $background-color,
-  background-dark: mix($background-color, #000, 85%)
+  background-dark: mix($background-color, #000, 90%),
+  text: $text-color
 );
 
 @function palette($name: transparent) {
