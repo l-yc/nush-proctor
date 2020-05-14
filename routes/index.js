@@ -3,7 +3,7 @@ var router = express.Router();
 
 module.exports = function(middleware) {
   router.get('/login', function(req, res, next) {
-    res.render('login', { title: 'login', message: req.flash('message') });
+    res.render('login', { title: 'Login', message: req.flash('message') });
   });
 
   router.post('/login', middleware.authenticate('login', {
@@ -28,13 +28,13 @@ module.exports = function(middleware) {
   router.use(middleware.checkAuthenticated);
 
   router.get('/', function(req, res, next) {
-    res.render('proctor', { title: 'proctor', sessionName: global.config.appName });
+    res.render('proctor', { title: 'Proctor', sessionName: global.config.appName });
   });
 
   router.get('/seer', [
     middleware.checkPermission('restricted')
   ], function(req, res, next) {
-    res.render('seer', { title: 'seer', sessionName: global.config.appName });
+    res.render('seer', { title: 'Seer', sessionName: global.config.appName });
   });
 
   return router;
