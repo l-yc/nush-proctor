@@ -34,9 +34,21 @@ module.exports = function(passport, acl) {
       let userId = middleware.getUserId(req, res);
 
       User.findById(userId, function(err, user) {
-        if (permission === 'restricted') {
-          if (user.role === 'proctor') return next();
-          else res.redirect('/'); // TODO: make this more robust
+        switch (permission) {
+          case 'restricted':
+            if (user.role.includes('proctor')) return next();
+            else {
+              req.flash('message', 'Permission Denied');
+              res.redirect('error', req.flash({ message: 'Permission Denied' }));
+            }
+            break;
+          case 'confidential':
+            if (user.role.includes('admin')) return next();
+            else {
+              req.flash('message', 'Permission Denied');
+              res.redirect('error');
+            }
+            break;
         }
       });
     }

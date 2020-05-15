@@ -22,6 +22,20 @@ var UserLocal = {
     } catch (err) {
       cb(err, null);
     }
+  },
+  find: function(params, cb) {
+    try {
+      let users = db.collections.accounts.filter(a => {
+        let ok = true;
+        Object.keys(params).forEach(key => {
+          ok &= a[key] === params[key];
+        });
+        return ok;
+      });
+      cb(null, users);
+    } catch (err) {
+      cb(err, null);
+    }
   }
 };
 
