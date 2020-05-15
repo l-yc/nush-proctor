@@ -236,23 +236,32 @@ function handleGetUserMediaError(err) {
 (async function() {
   let connectButton = document.querySelector('#connect');
   let disconnectButton = document.querySelector('#disconnect');
+  let pingButton = document.querySelector('#ping');
   let videoContainer = document.querySelector('#video-container');
   let shareCamera = document.getElementById('share-camera');
   let shareScreen = document.getElementById('share-screen');
 
   connectButton.disabled = true;
   disconnectButton.disabled = true;
+  pingButton.disabled = true;
 
   connectButton.addEventListener('click', e => {
     connectButton.disabled = true;
     disconnectButton.disabled = false;
+    pingButton.disabled = false;
     call()
   });
 
   disconnectButton.addEventListener('click', e => {
     connectButton.disabled = false;
     disconnectButton.disabled = true;
+    pingButton.disabled = true;
     conn.stop();
+  });
+
+  pingButton.addEventListener('click', e => {
+    console.log('[PROCTOR] Pinging proctor...');
+    socket.emit('ping proctor');
   });
 
   shareCamera.addEventListener('click', e => {

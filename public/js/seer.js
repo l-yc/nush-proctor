@@ -160,6 +160,8 @@ class Student {
 
     s.appendChild(div);
     videoContainer.appendChild(s);
+
+    this.DOMNode = s;
   }
 
   createNewConnection(src) {
@@ -297,6 +299,18 @@ socket.on('available offer', async (data) => {
   console.log('[PROCTOR] Accepted offer.');
 });
 
+socket.on('student ping', async (data) => {
+  console.log('[PROCTOR] Pinged by %o.', data);
+
+  console.log('[PROCTOR] Current student is %o', students[data.from.user]);
+  if (!students.hasOwnProperty(data.from.user) || !students[data.from.user]) {
+    console.log('[PROCTOR] Student not found!');
+  }
+  let s = students[data.from.user];
+  s.DOMNode.classList.add('highlight');
+  console.log('[PROCTOR] Highlighting user.', data.from.user);
+});
+
 // MARK: attempt to support voice
 function addStream(stream) {
   localStreams.push(stream);
@@ -352,5 +366,15 @@ function addStream(stream) {
         conn.stop();
       });
     });
+  });
+
+  // removes visual bell of a student when you click anywhere inside the student div
+  let studentContainer = document.querySelector('#student-container');
+  studentContainer.addEventListener('click', e => {
+    console.log(e.target);
+    let p = e.target.closest('.student');
+    if (p) {
+      p.classList.remove('highlight');
+    }
   });
 })();
