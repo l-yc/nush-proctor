@@ -77,7 +77,7 @@ module.exports = function(server, sessionMiddleware) {
       };  // Map of id to username. Ids are guaranteed to be unique
     }
     socketUserMap[socket.id] = user;
-    if (user.role === 'proctor') seerSocketMap[user.id] = socket.id; // TODO: assuming seer only has 1 device
+    if (user.role.includes('proctor')) seerSocketMap[user.id] = socket.id; // TODO: assuming seer only has 1 device
 
     socket.emit('config', {
       iceServers: getIceServers(user.id).iceServers,
@@ -92,7 +92,7 @@ module.exports = function(server, sessionMiddleware) {
       if (--online[user.id].count === 0) {
         delete online[user.id];
       }
-      if (user.role === 'proctor') delete seerSocketMap[user.id];
+      if (user.role.includes('proctor')) delete seerSocketMap[user.id];
     }
     io.sockets.emit('online users', online);
   }
@@ -100,7 +100,7 @@ module.exports = function(server, sessionMiddleware) {
   function getReceipient(srcSocketId, destSocketId) {
     console.log('Fetching receipient of %o using %o', srcSocketId, destSocketId);
     let user = socketUserMap[srcSocketId];
-    if (user.role === 'student') {
+    if (user.role.includes('student')) {
       // Fixed destination for security
       return {
         socket: seerSocketMap[user.seer.id], // it's ok for seers to disconnect

@@ -12,7 +12,9 @@ function loadAccounts() {
 
     rl.on('line', (line) => {
       /**
-       * FORMAT
+       * FORMAT (<roles>:<account details>)
+       * admin: <username>; <password>; 
+       * proctor; admin: <username>; <password>; 
        * proctor: <username>; <password>; 
        * student: <username>; <password>; <assignedProctor>
        */
@@ -23,7 +25,7 @@ function loadAccounts() {
 
       accounts.push({
         _id: id,
-        role: res[1],
+        role: res[1].split(';').map(item => item.trim()), // support a list of roles
         username: res[2],
         password: res[3],
         assignedProctor: res[5]
@@ -43,8 +45,9 @@ exports.connect = function() {
       accounts: _accounts
     }
 
+    console.log(_accounts);
     return {}; // TODO: temporary connection object
-  })
+  });
 }
 
 let UserHelper = require('./userLocal');
@@ -54,12 +57,13 @@ exports.models = {
   UserHelper: UserHelper
 };
 
-exports.serializeUser = function(user, done) {
+exports.serializeUser = function(user, done) { // actually, this should be in the helper
   done(null, user._id);
 };
 
 exports.deserializeUser = function(id, done) {
   User.findById(id, function(err, user) {
-    done(err, user);
+    if (err || !user) done(null, null); // this user cannot be found...
+    else done(err, user);
   });
 };

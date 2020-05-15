@@ -19,6 +19,7 @@ exports.serializeUser = function(user, done) {
 
 exports.deserializeUser = function(id, done) {
   User.findById(id, function(err, user) {
-    done(err, user);
+    if (err || !user) done(null, null); // this user cannot be found...
+    else done(err, user);
   });
 };
