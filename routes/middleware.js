@@ -39,7 +39,7 @@ module.exports = function(passport, acl) {
             if (user.role.includes('proctor')) return next();
             else {
               req.flash('message', 'Permission Denied');
-              res.redirect('error', req.flash({ message: 'Permission Denied' }));
+              res.redirect('error');
             }
             break;
           case 'confidential':

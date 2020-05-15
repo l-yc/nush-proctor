@@ -7,7 +7,7 @@ module.exports = function(middleware) {
   });
 
   router.post('/login', middleware.authenticate('login', {
-    successRedirect: '/seer',
+    successRedirect: '/',
     failureRedirect: '/login',
     failureFlash: true
   }));
@@ -32,6 +32,11 @@ module.exports = function(middleware) {
   router.use(middleware.checkAuthenticated);
 
   router.get('/', function(req, res, next) {
+    if (req.user.role.includes('student')) res.redirect('/proctor');
+    else res.redirect('/seer');
+  });
+
+  router.get('/proctor', function(req, res, next) {
     res.render('proctor', { title: 'Proctor', sessionName: global.config.appName });
   });
 
