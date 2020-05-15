@@ -65,6 +65,8 @@ db.connect().then(connection => {
   console.log('Setting up middleware');
   var middleware = require('./routes/middleware')(passport, acl);
   var indexRouter = require('./routes/index')(middleware);
+  var apiRouter = require('./routes/api')(middleware);
+  app.use('/api/v1.0', apiRouter); // version is hardcoded...is there a better way?
   app.use('/', indexRouter);
 
   // catch 404 and forward to error handler

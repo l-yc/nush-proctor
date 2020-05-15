@@ -24,6 +24,10 @@ module.exports = function(middleware) {
   //  failureFlash: true
   //}));
 
+  router.get('/error', function(req, res) {
+    res.render('error', { message: req.flash('message'), error: { status: null, stack: null }});
+  });
+
   // Protected
   router.use(middleware.checkAuthenticated);
 
@@ -36,6 +40,19 @@ module.exports = function(middleware) {
   ], function(req, res, next) {
     res.render('seer', { title: 'Seer', sessionName: global.config.appName });
   });
+
+  router.get('/seer', [
+    middleware.checkPermission('restricted')
+  ], function(req, res, next) {
+    res.render('seer', { title: 'Seer', sessionName: global.config.appName });
+  });
+
+  router.get('/cockpit', [
+    middleware.checkPermission('confidential')
+  ], function(req, res, next) {
+    res.render('cockpit', { title: 'Cockpit', sessionName: global.config.appName });
+  });
+
 
   return router;
 };
