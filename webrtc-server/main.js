@@ -108,10 +108,18 @@ module.exports = function(server, sessionMiddleware) {
       };                                     // once the seer reconnect
     } else { // proctor
       // for now, we'll trust the proctors
-      return {
-        socket: destSocketId,                // don't care if this socket still exists
-        user: socketUserMap[destSocketId].id // if it doesn't exist anymore, it will fail
-      };                                     // which is handled by client-side js
+      // not anymore D:<
+      if (!destSocketId || !socketUserMap[destSocketId]) {
+        return {
+          socket: null,
+          user: null
+        }
+      } else {
+        return {
+          socket: destSocketId,                // don't care if this socket still exists
+          user: socketUserMap[destSocketId].id // if it doesn't exist anymore, it will fail
+        };                                     // which is handled by client-side js
+      }
     }
   }
 
@@ -159,6 +167,7 @@ module.exports = function(server, sessionMiddleware) {
         user: user.id
       });
       let to = getReceipient(socket.id, data.to);
+      if (!to.socket) return; // nope, not a valid offer FIXME
       console.log('Forwarding offer to %o', to);
       socket.to(to.socket).emit('available offer', {
         offer: data.offer,
@@ -172,6 +181,7 @@ module.exports = function(server, sessionMiddleware) {
     socket.on('accept offer', function(data) {
       console.log('Offer accepted');
       let to = getReceipient(socket.id, data.to);
+      if (!to.socket) return; // something is wrong, FIXME
       console.log('Answering %o', to);
       socket.to(to.socket).emit('offer accepted', {
         answer: data.answer,
@@ -188,9 +198,22 @@ module.exports = function(server, sessionMiddleware) {
         user: user.id
       });
       let to = getReceipient(socket.id, data.to);
+      if (!to.socket) return; // something is wrong, FIXME
       console.log('Sending candidate to %o', to);
       socket.to(to.socket).emit('candidate available', {
         candidate: data.candidate,
+        from: {
+          socket: socket.id,
+          user: user.id
+        }
+      });
+    });
+
+    socket.on('ping proctor', function(data) {
+      console.log('Pinging proctor...');
+      let to = getReceipient(socket.id, null); // slight abuse of the function
+      if (!to.socket) return; // not a student
+      socket.to(to.socket).emit('student ping', {
         from: {
           socket: socket.id,
           user: user.id
