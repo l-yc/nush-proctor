@@ -1,0 +1,16 @@
+<%- include('layouts/header') -%>
+
+<%- include('partials/user') -%>
+<!-- page content -->
+<main id="cockpit">
+  <h1 class="title"><%= sessionName %></h1>
+  <div id="accounts-card" class="card">
+    <h2>Accounts</h2>
+    <button id="sync-accounts" class="icon btn"><i class="las la-sync la-lg"></i>Sync</button>
+    <ul id="accounts"></ul>
+  </div>
+</main>
+
+<script src="/js/cockpit.js"></script>
+
+<%- include('layouts/footer') -%>
