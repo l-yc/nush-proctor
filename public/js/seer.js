@@ -306,7 +306,7 @@ socket.on('available offer', async (data) => {
     new RTCSessionDescription(data.offer)
   );
 
-  localStreams.forEach(stream => stream.getTracks().forEach(track => {
+  ui.localStreams.forEach(stream => stream.getTracks().forEach(track => {
     console.log('add track %o of stream %o', track, stream);
     conn.rtpSender = conn.peerConnection.addTrack(track, stream)
     //conn.rtpSender.track.enabled = false;
