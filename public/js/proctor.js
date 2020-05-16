@@ -1,18 +1,21 @@
 'use strict';
 console.clear();
 
-function reportError(errMessage) {
-  console.log(`Error ${errMessage.name}: ${errMessage.message}`);
-  //let fakeconsole = document.querySelector('#fakeconsole');
-  //fakeconsole.innerText += `Error ${errMessage.name}: ${errMessage.message}\n`;
-}
+/* Debugging Code */
 
+/**
+ * Useful when no console is available. Remember to create fakeconsole in html
+ */
+//function reportError(errMessage) {
+//  console.log(`Error ${errMessage.name}: ${errMessage.message}`);
+//  let fakeconsole = document.querySelector('#fakeconsole');
+//  fakeconsole.innerText += `Error ${errMessage.name}: ${errMessage.message}\n`;
+//}
 //let fakeconsole = document.querySelector('#fakeconsole');
 //fakeconsole.innerText += `Starting...`;
 
 /* UI Code */
-// this may seem like an unnecessary abstraction, but it's meant to keep this
-// more organised
+
 /**
  * This class handles the UI, Camera and Screen
  */
@@ -105,6 +108,10 @@ class UI {
     });
   }
 
+  setSignalingServer(signalingServer) {
+    this.signalingServer = signalingServer;
+  }
+
   async beep() {
     let snd = new Audio('/sound/disconnect.mp3');
     return snd.play();
@@ -115,7 +122,10 @@ class UI {
     connectionStateIndicator.innerHTML = `Status: <strong>${connectionState}</strong>`;
 
     switch (connectionState) {
-      case 'closed':
+      case 'connected':
+        alert('Connected!');
+        break;
+      case 'disconnected':
         await ui.beep();
         alert('Disconnected! Your proctor has been notified.');
         document.querySelector('#disconnect').click();
@@ -158,12 +168,16 @@ class UI {
   async call() {
     let conn = connections[Object.keys(connections)[0]]; // we only have 1 connection now, it's ok if there's no connections yet
     if (conn && conn.peerConnection) return; // already calling
-    ui.setStatus('initiating call');
+    this.setStatus('initiating call');
 
     conn = new Connection(null); // no source because we're initiating the call
     connections[null] = conn;  // TODO maybe retrieve seer socket id from server?
+    //conn.destructionCallback = () => new Promise(async (resolve, reject) => { // FIXME should i follow the interface?
+    //  resolve(null); // we don't need to do anything after the connection is destroyed
+    //};
+
     console.log('[PROCTOR] Calling...');
-    console.log(connections, signalingServer.connections);
+    console.log(connections, this.signalingServer.connections);
     console.log('connection is now %o', conn);
 
     this.localStreams.forEach(stream => stream.getTracks().forEach(track => conn.peerConnection.addTrack(track, stream)));
@@ -171,231 +185,37 @@ class UI {
 
   async stop() {
     let conn = connections[Object.keys(connections)[0]]; // we only have 1 connection now
-    ui.setStatus('termianting call');
-
-    conn.stop();
+    if (conn && conn.peerConnection) {
+      this.setStatus('terminating call');
+      conn.stop();
+    }
   }
 };
 
 let ui = null;  // we will use this instance in the rest of the code
 
 /* Signaling Server */
-class SignalingServer {
-  constructor() {
-    this.ready = false; // we need to wait until we have the connections
-  }
-
-  setConnections(connections) { // yes this should be a setter, but I dont want to rename
-    this.connections = connections; // all my variables now to avoid infinite recursion
-    
-    this.ready = true;
-  }
-
-  init() {
-    if (!this.ready) return; // there's no connections to monitor for!
-
-    let socket = io({
-      autoConnect: true // no need to call socket.open()
-    });
-    this.socket = socket;
-
-    socket.on('connect', event => {
-      console.log('[PROCTOR] Connected to the signaling server.');
-      socket.emit('login');
-      console.log('[PROCTOR] Registered user.');
-    });
-
-    socket.on('disconnect', () => {
-      console.warn('[PROCTOR] Disconnected from signaling server.');
-      alert('You have been disconnected. Please reload the page.');
-    });
-
-    socket.on('config', data => {
-      console.log('[PROCTOR] Obtained config: %o', data);
-      this.Connection.setIceServers(data.iceServers);
-      //configuration.iceServers = data.iceServers;
-
-      ui.setUsername(data.username);
-    });
-
-    socket.on('offer accepted', data => {
-      console.log('[PROCTOR] Offer accepted.');
-      let conn = this.connections[null]; // find the unassigned connection
-      this.connections[data.from.socket] = conn; // assign it correctly!
-
-      conn.peerConnection.setRemoteDescription(
-        new RTCSessionDescription(data.answer)
-      ).then(() => {
-        console.log('[PROCTOR] Remote description set.');
-      }).catch(reportError);
-    });
-
-    socket.on('candidate available', data => {
-      console.log('[PROCTOR] Received an ICE Candidate: %o', data);
-      if (data.candidate === null) return; // end of candidate stream
-
-      let conn = this.connections[data.from.socket];
-      conn.peerConnection.addIceCandidate(data.candidate);
-    }); 
-  }
-
-  submitOffer(offer) {
-    this.socket.emit('submit offer', {
-      offer: offer,
-      to: null
-    });
-  }
-
-  submitCandidate(candidate) {
-    this.socket.emit('submit candidate', { 
-      candidate: candidate,
-      to: null
-    });
-  }
-
-  pingProctor() {
-    this.socket.emit('ping proctor');
-  }
-};
+import { SignalingServer } from './webrtcSignaling.js';
 
 let signalingServer = null; // we will use this instance in the rest of the code
 
 /* WebRTC Peer Connection */
-const { RTCPeerConnection, RTCSessionDescription } = window;
-
-class Connection {
-  /**
-   * from: socket id
-   * eventHandler: some object which handles events emitted by the connection
-   */
-  constructor(from) {
-    this.peerConnection = new RTCPeerConnection(this.configuration);
-    this.timeoutHandle = null;
-
-    this.from = from;
-
-    this.peerConnection.onicecandidate = this.handleICECandidateEvent.bind(this);
-    this.peerConnection.ontrack = this.handleOnTrackEvent.bind(this);
-    this.peerConnection.onnegotiationneeded = this.handleNegotiationNeededEvent.bind(this);
-    // myPeerConnection.onremovetrack = handleRemoveTrackEvent;                           // TODO: need renegotiation
-    this.peerConnection.onconnectionstatechange = this.handleConnectionStateChangeEvent.bind(this);
-    // myPeerConnection.oniceconnectionstatechange = handleICEConnectionStateChangeEvent; // older functions
-    // myPeerConnection.onicegatheringstatechange = handleICEGatheringStateChangeEvent;   // same purpose
-    // myPeerConnection.onsignalingstatechange = handleSignalingStateChangeEvent;         // TODO: backward comptability?
-    console.log('[PROCTOR] Created new connection.');
-  }
-
-  static setIceServers(iceServers) {
-    this.prototype.configuration.iceServers = iceServers; // TODO: is there a better way?
-  }
-
-  async stop() {
-    if (!this.peerConnection) return; // not calling
-    this.peerConnection.close();
-    if (this.timeoutHandle) window.clearTimeout(this.timeoutHandle);
-
-    console.log('con state is now', this.peerConnection.connectionState);
-    ui.setStatus('closed');
-    console.warn('[PROCTOR] Disconnected from remote stream.');
-
-    this.peerConnection = null;  // this connection is now useless
-    this.timeoutHandle = null;
-  }
-
-  handleICECandidateEvent({candidate}) {
-    console.log('[PROCTOR] Obtained an ICE Candidate %o.', candidate);
-    if (candidate === null) return; // useless
-    if (candidate.candidate === '') return;
-    this.signalingServer.submitCandidate(candidate);
-  }
-
-  handleOnTrackEvent({ streams: [stream] }) {
-    console.log('[PROCTOR] Received stream. %o', stream);
-    if (!stream) return; // ??? firefox 76.0+ is giving undefined streams
-    // i dont know why it happens, but this fixes it
-    let remoteAudio = document.getElementById("remote-audio");
-    if (remoteAudio) {
-      remoteAudio.srcObject = stream;
-      //remoteAudio.load();
-      remoteAudio.play()
-        .then(() => {
-          console.log('playing');
-        }).catch(reportError);
-    }
-  }
-
-  handleNegotiationNeededEvent() {
-    this.peerConnection.createOffer({
-      //offerToReceiveVideo: true,
-      offerToReceiveAudio: true
-    }).then(offer => {
-      console.log('[PROCTOR] Created offer.');
-      return this.peerConnection.setLocalDescription(new RTCSessionDescription(offer));
-    }).then(() => {
-      console.log('[PROCTOR] Local description set.');
-      console.log('[PROCTOR] Submitting offer.');
-
-      this.signalingServer.submitOffer(this.peerConnection.localDescription);
-    }).catch(reportError);
-  }
-
-  handleConnectionStateChangeEvent(event) {
-    console.log('[PROCTOR] Connection has changed: %o', event);
-    console.log('[PROCTOR] Connection state:', this.peerConnection.connectionState);
-    console.assert(event.srcElement === this.peerConnection);
-    // connection state: new, connecting, connected, disconnected, failed or closed
-    ui.setStatus(this.peerConnection.connectionState);
-    switch (this.peerConnection.connectionState) {
-      case 'connected':
-        // Peers connected!
-        console.log('[PROCTOR] Connected to remote stream.');
-        if (this.timeoutHandle) {
-          window.clearTimeout(this.timeoutHandle);
-        } else {
-          alert('Connected!');
-        }
-        break;
-      case 'disconnected':
-        this.timeoutHandle = window.setTimeout(() => {
-          console.warn('[PROCTOR] Connection is unstable.');
-          this.stop();
-        }, this.MAX_TIMEOUT);
-        break;
-      case 'failed':
-        console.warn('[PROCTOR] Connection failed.');
-        this.stop();
-        break;
-      case 'closed':
-        // this is NOT fired on chrome, as per design specs
-        // https://github.com/w3c/webrtc-pc/issues/1020
-        // https://bugs.chromium.org/p/chromium/issues/detail?id=699036
-        // so I will be ignoring this from now on
-        break;
-    }
-  }
-};
-// static variables
-Connection.prototype.configuration = {
-  iceServers: null,
-  iceTransportPolicy: 'relay',  // relay for TURN only
-  iceCandidatePoolSize: 0
-};
-
-Connection.prototype.MAX_TIMEOUT = 15000; // 15 second to reconnect
+import { Connection } from './webrtcConnection.js';
 
 let connections = {}; // object, easier to extend in the futureo
 
 /* Main Logic */
 (async function() { 
   SignalingServer.prototype.Connection = Connection;
-
   signalingServer = new SignalingServer();
-  signalingServer.setConnections(connections);
-
-  UI.prototype.signalingServer = signalingServer;
-  Connection.prototype.signalingServer = signalingServer;
 
   ui = new UI();
+  ui.setSignalingServer(signalingServer);
+  signalingServer.setUi(ui);
+
+  Connection.prototype.signalingServer = signalingServer;
+  Connection.prototype.ui = ui;
+  signalingServer.setConnections(connections);
 
   signalingServer.init();
 })();
