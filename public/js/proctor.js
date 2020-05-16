@@ -13,8 +13,13 @@ function reportError(errMessage) {
 /* UI Code */
 // this may seem like an unnecessary abstraction, but it's meant to keep this
 // more organised
+/**
+ * This class handles the UI, Camera and Screen
+ */
 class UI {
   constructor() {
+    this.localStreams = [];
+
     let connectButton = document.querySelector('#connect');
     let disconnectButton = document.querySelector('#disconnect');
     let pingButton = document.querySelector('#ping');
@@ -32,19 +37,22 @@ class UI {
       shareScreen.disabled = true;
       disconnectButton.disabled = false;
       pingButton.disabled = false;
-      call()
+      this.call();
     });
 
     disconnectButton.addEventListener('click', e => {
       connectButton.disabled = false;
+      shareCamera.disabled = false;
+      shareScreen.disabled = false;
       disconnectButton.disabled = true;
       pingButton.disabled = true;
-      conn.stop();
+      this.stop();
     });
 
     pingButton.addEventListener('click', e => {
       console.log('[PROCTOR] Pinging proctor...');
-      socket.emit('ping proctor');
+      this.signalingServer.pingProctor();
+      alert('Pinged!');
     });
 
     shareCamera.addEventListener('click', e => {
@@ -71,9 +79,9 @@ class UI {
 
         console.log('got stream %o', stream)
         connectButton.disabled = false;
-        addStream(stream);
+        this.addStream(stream);
         alert('Double click the video to reverse video');
-      }).catch(handleGetUserMediaError);
+      }).catch(this.handleGetUserMediaError);
     });
 
     shareScreen.addEventListener('click', e => {
@@ -92,8 +100,8 @@ class UI {
         screenVideo.play();
 
         connectButton.disabled = false;
-        addStream(stream);
-      }).catch(handleGetUserMediaError);
+        this.addStream(stream);
+      }).catch(this.handleGetUserMediaError);
     });
   }
 
@@ -114,42 +122,146 @@ class UI {
         break;
     }
   }
+
+  setUsername(username) {
+    let signalingStateIndicator = document.querySelector('#signaling-state');
+    signalingStateIndicator.innerHTML = `Logged in as <strong>${username}</strong>`;
+  }
+
+  handleGetUserMediaError(err) {
+    reportError(err);
+    console.log('error: ' + err);
+    switch(err.name) {
+      case 'NotFoundError':
+        alert('Unable to open your call because no camera and/or microphone' +
+          ' were found.');
+        break;
+      case 'NotAllowedError':
+      case 'SecurityError':
+      case 'PermissionDeniedError':
+        alert('You must enable your camera/microphone/screen to use this app.');
+        break;
+      default:
+        alert('Error opening your camera/microphone/screen: ' + err.message);
+        break;
+    }
+  }
+
+  addStream(stream) {
+    this.localStreams.push(stream);
+    // if (conn) { // TODO: need to renegotiate for this to work
+    //   console.log('[PROCTOR] Adding stream... %o', stream);
+    //   stream.getTracks().forEach(track => conn.peerConnection.addTrack(track, stream));
+    // }
+  }
+
+  async call() {
+    let conn = connections[Object.keys(connections)[0]]; // we only have 1 connection now, it's ok if there's no connections yet
+    if (conn && conn.peerConnection) return; // already calling
+    ui.setStatus('initiating call');
+
+    conn = new Connection(null); // no source because we're initiating the call
+    connections[null] = conn;  // TODO maybe retrieve seer socket id from server?
+    console.log('[PROCTOR] Calling...');
+    console.log(connections, signalingServer.connections);
+    console.log('connection is now %o', conn);
+
+    this.localStreams.forEach(stream => stream.getTracks().forEach(track => conn.peerConnection.addTrack(track, stream)));
+  }
+
+  async stop() {
+    let conn = connections[Object.keys(connections)[0]]; // we only have 1 connection now
+    ui.setStatus('termianting call');
+
+    conn.stop();
+  }
 };
 
 let ui = null;  // we will use this instance in the rest of the code
 
 /* Signaling Server */
-const socket = io({
-  autoConnect: true // no need to call socket.open()
-});
+class SignalingServer {
+  constructor() {
+    this.ready = false; // we need to wait until we have the connections
+  }
 
-socket.on('connect', event => {
-  console.log('[PROCTOR] Connected to the signaling server.');
-  socket.emit('login');
-  console.log('[PROCTOR] Registered user.');
-});
+  setConnections(connections) { // yes this should be a setter, but I dont want to rename
+    this.connections = connections; // all my variables now to avoid infinite recursion
+    
+    this.ready = true;
+  }
 
-socket.on('disconnect', () => {
-  console.warn('[PROCTOR] Disconnected from signaling server.');
-  alert('You have been disconnected. Please reload the page.');
-});
+  init() {
+    if (!this.ready) return; // there's no connections to monitor for!
+
+    let socket = io({
+      autoConnect: true // no need to call socket.open()
+    });
+    this.socket = socket;
+
+    socket.on('connect', event => {
+      console.log('[PROCTOR] Connected to the signaling server.');
+      socket.emit('login');
+      console.log('[PROCTOR] Registered user.');
+    });
+
+    socket.on('disconnect', () => {
+      console.warn('[PROCTOR] Disconnected from signaling server.');
+      alert('You have been disconnected. Please reload the page.');
+    });
+
+    socket.on('config', data => {
+      console.log('[PROCTOR] Obtained config: %o', data);
+      this.Connection.setIceServers(data.iceServers);
+      //configuration.iceServers = data.iceServers;
+
+      ui.setUsername(data.username);
+    });
+
+    socket.on('offer accepted', data => {
+      console.log('[PROCTOR] Offer accepted.');
+      let conn = this.connections[null]; // find the unassigned connection
+      this.connections[data.from.socket] = conn; // assign it correctly!
+
+      conn.peerConnection.setRemoteDescription(
+        new RTCSessionDescription(data.answer)
+      ).then(() => {
+        console.log('[PROCTOR] Remote description set.');
+      }).catch(reportError);
+    });
+
+    socket.on('candidate available', data => {
+      console.log('[PROCTOR] Received an ICE Candidate: %o', data);
+      if (data.candidate === null) return; // end of candidate stream
+
+      let conn = this.connections[data.from.socket];
+      conn.peerConnection.addIceCandidate(data.candidate);
+    }); 
+  }
+
+  submitOffer(offer) {
+    this.socket.emit('submit offer', {
+      offer: offer,
+      to: null
+    });
+  }
+
+  submitCandidate(candidate) {
+    this.socket.emit('submit candidate', { 
+      candidate: candidate,
+      to: null
+    });
+  }
+
+  pingProctor() {
+    this.socket.emit('ping proctor');
+  }
+};
+
+let signalingServer = null; // we will use this instance in the rest of the code
 
 /* WebRTC Peer Connection */
 const { RTCPeerConnection, RTCSessionDescription } = window;
-
-let configuration = {
-  iceServers: null,
-  iceTransportPolicy: 'relay',  // relay for TURN only
-  iceCandidatePoolSize: 0
-};
-
-socket.on('config', data => {
-  console.log('[PROCTOR] Obtained config: %o', data);
-  configuration.iceServers = data.iceServers;
-
-  let signalingStateIndicator = document.querySelector('#signaling-state');
-  signalingStateIndicator.innerHTML = `Logged in as <strong>${data.username}</strong>`;
-});
 
 class Connection {
   /**
@@ -157,7 +269,7 @@ class Connection {
    * eventHandler: some object which handles events emitted by the connection
    */
   constructor(from) {
-    this.peerConnection = new RTCPeerConnection(configuration);
+    this.peerConnection = new RTCPeerConnection(this.configuration);
     this.timeoutHandle = null;
 
     this.from = from;
@@ -171,6 +283,10 @@ class Connection {
     // myPeerConnection.onicegatheringstatechange = handleICEGatheringStateChangeEvent;   // same purpose
     // myPeerConnection.onsignalingstatechange = handleSignalingStateChangeEvent;         // TODO: backward comptability?
     console.log('[PROCTOR] Created new connection.');
+  }
+
+  static setIceServers(iceServers) {
+    this.prototype.configuration.iceServers = iceServers; // TODO: is there a better way?
   }
 
   async stop() {
@@ -190,10 +306,7 @@ class Connection {
     console.log('[PROCTOR] Obtained an ICE Candidate %o.', candidate);
     if (candidate === null) return; // useless
     if (candidate.candidate === '') return;
-    socket.emit('submit candidate', { 
-      candidate: candidate,
-      to: null
-    });
+    this.signalingServer.submitCandidate(candidate);
   }
 
   handleOnTrackEvent({ streams: [stream] }) {
@@ -222,10 +335,7 @@ class Connection {
       console.log('[PROCTOR] Local description set.');
       console.log('[PROCTOR] Submitting offer.');
 
-      socket.emit('submit offer', {
-        offer: this.peerConnection.localDescription,
-        to: null
-      });
+      this.signalingServer.submitOffer(this.peerConnection.localDescription);
     }).catch(reportError);
   }
 
@@ -265,67 +375,27 @@ class Connection {
   }
 };
 // static variables
+Connection.prototype.configuration = {
+  iceServers: null,
+  iceTransportPolicy: 'relay',  // relay for TURN only
+  iceCandidatePoolSize: 0
+};
+
 Connection.prototype.MAX_TIMEOUT = 15000; // 15 second to reconnect
 
+let connections = {}; // object, easier to extend in the futureo
 
-let conn = null;
-
-socket.on('offer accepted', data => { // this way of handling isn't ideal, should refactor into signaling server
-  console.log('[PROCTOR] Offer accepted.');
-  conn.from = data.from.socket;
-  conn.peerConnection.setRemoteDescription(
-    new RTCSessionDescription(data.answer)
-  ).then(() => {
-    console.log('[PROCTOR] Remote description set.');
-  }).catch(reportError);
-});
-
-socket.on('candidate available', data => {
-  console.log('[PROCTOR] Received an ICE Candidate: %o', data);
-  if (data.candidate === null) return; // end of candidate stream
-  conn.peerConnection.addIceCandidate(data.candidate);
-}); 
-
-let localStreams = [];
-
-async function call() {
-  if (conn && conn.peerConnection) return; // already calling
-  ui.setStatus('initiating call');
-
-  conn = new Connection(null); // no source because we're initiating the call
-  console.log('connection is now %o', conn);
-
-  localStreams.forEach(stream => stream.getTracks().forEach(track => conn.peerConnection.addTrack(track, stream)));
-}
-
-/* Main */
-function addStream(stream) {
-  localStreams.push(stream);
-  // if (conn) { // TODO: need to renegotiate for this to work
-  //   console.log('[PROCTOR] Adding stream... %o', stream);
-  //   stream.getTracks().forEach(track => conn.peerConnection.addTrack(track, stream));
-  // }
-}
-
-function handleGetUserMediaError(err) {
-  reportError(err);
-  console.log('error: ' + err);
-  switch(err.name) {
-    case 'NotFoundError':
-      alert('Unable to open your call because no camera and/or microphone' +
-        ' were found.');
-      break;
-    case 'NotAllowedError':
-    case 'SecurityError':
-    case 'PermissionDeniedError':
-      alert('You must enable your camera/microphone/screen to use this app.');
-      break;
-    default:
-      alert('Error opening your camera/microphone/screen: ' + err.message);
-      break;
-  }
-}
-
+/* Main Logic */
 (async function() { 
+  SignalingServer.prototype.Connection = Connection;
+
+  signalingServer = new SignalingServer();
+  signalingServer.setConnections(connections);
+
+  UI.prototype.signalingServer = signalingServer;
+  Connection.prototype.signalingServer = signalingServer;
+
   ui = new UI();
+
+  signalingServer.init();
 })();
