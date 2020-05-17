@@ -5,9 +5,23 @@
 
   #online-users-container {
     display: flex;
+    color: palette(text);
     flex-flow: column nowrap;
     align-items: center;
     padding: 8px;
+    transition: color ease-in-out 0.1s;
+
+    &:hover {
+      cursor: pointer;
+      color: palette(text-light);
+    }
+
+    #online-users {
+      color: palette(text);
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.2s ease-out;
+    }
   }
 
   .flow.list {

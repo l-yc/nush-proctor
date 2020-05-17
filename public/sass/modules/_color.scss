@@ -11,6 +11,7 @@ $palette: (
   background: $background-color,
   background-dark: mix($background-color, #000, 90%),
   text: $text-color,
+  text-light: mix($text-color, #fff, 30%),
   alert: $alert-color
 );
 
