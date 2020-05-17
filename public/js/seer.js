@@ -171,8 +171,8 @@ class Student {
 
     s.innerHTML = `<p class="student-info">${this.username}</p>
       <button class="talk btn">
-        <i class="las la-microphone la-lg"></i>
-        <span class="text">talk</button>
+        <i class="las la-microphone-slash la-lg"></i>
+        <span class="text">muted</button>
       </button>`;
 
     // Local muting
@@ -180,20 +180,20 @@ class Student {
     talkButton.onclick = evt => {
       talkButton.querySelector('i').classList.toggle('la-microphone');
       talkButton.querySelector('i').classList.toggle('la-microphone-slash');
-      if (talkButton.querySelector('span').innerText == 'talk') {
+      if (talkButton.querySelector('span').innerText == 'muted') {
         Object.keys(this.connections).forEach(key => {
           let conn = this.connections[key];
           conn.rtpSender.replaceTrack(conn.track);
           //conn.rtpSender.track.enabled = true;
         });
-        talkButton.querySelector('span').innerText = 'mute';
+        talkButton.querySelector('span').innerText = 'talking';
       } else {
         Object.keys(this.connections).forEach(key => {
           let conn = this.connections[key];
           conn.rtpSender.replaceTrack(null);
           //conn.rtpSender.track.enabled = false;
         });
-        talkButton.querySelector('span').innerText = 'talk';
+        talkButton.querySelector('span').innerText = 'muted';
       }
     };
 
