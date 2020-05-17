@@ -4,15 +4,24 @@ console.clear();
 /* Debugging Code */
 
 /**
- * Useful when no console is available. Remember to create fakeconsole in html
+ * Useful when no console is available. Uncomment the init line for it to work.
  */
-//function reportError(errMessage) {
-//  console.log(`Error ${errMessage.name}: ${errMessage.message}`);
-//  let fakeconsole = document.querySelector('#fakeconsole');
-//  fakeconsole.innerText += `Error ${errMessage.name}: ${errMessage.message}\n`;
-//}
-//let fakeconsole = document.querySelector('#fakeconsole');
-//fakeconsole.innerText += `Starting...`;
+let fakeconsole = {
+  console: document.querySelector('#fakeconsole'),
+  enabled: false,
+  log: function(s) {
+    if (this.enabled) this.console.innerHTML += s + '<br>';
+  },
+  init: function() {
+    this.enabled = true;
+    this.log(`Starting...`);
+  },
+  reportError: function(errMessage) {
+    console.log(`Error ${errMessage.name}: ${errMessage.message}`);
+    this.log(`Error ${errMessage.name}: ${errMessage.message}\n`);
+  }
+}
+//fakeconsole.init();
 
 /* UI Code */
 
@@ -140,9 +149,26 @@ class UI {
         alert('Connected!');
         break;
       case 'disconnected':
-        await this.beep();
-        //alert('Disconnected! Your proctor has been notified.');
-        document.querySelector('#disconnect').click();
+        let connectButton = document.querySelector('#connect');
+        let disconnectButton = document.querySelector('#disconnect');
+        let pingButton = document.querySelector('#ping');
+        let videoContainer = document.querySelector('#video-container');
+        let shareCamera = document.getElementById('share-camera');
+        let shareScreen = document.getElementById('share-screen');
+
+        connectButton.disabled = false;
+        if (shareCamera) shareCamera.disabled = false;
+        if (shareScreen) shareScreen.disabled = false;
+        disconnectButton.disabled = true;
+        pingButton.disabled = true;
+
+        //await this.beep();
+        this.beep().then(() => {
+          fakeconsole.log('success');
+        }).catch(err => {
+          fakeconsole.reportError(err);
+        });
+        alert('Disconnected! Your proctor has been notified.');
         break;
     }
   }
@@ -153,7 +179,7 @@ class UI {
   }
 
   handleGetUserMediaError(err) {
-    //reportError(err);
+    fakeconsole.reportError(err);
     console.log('error: ' + err);
     switch(err.name) {
       case 'NotFoundError':
