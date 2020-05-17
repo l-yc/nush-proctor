@@ -221,6 +221,7 @@ class Student {
       let remoteVideo = document.createElement('video');
       remoteVideo.autoplay = true;
       remoteVideo.controls = true;
+      remoteVideo.playsInline = true;
       //remoteVideo.load(); 
       remoteVideo.srcObject = stream;
 

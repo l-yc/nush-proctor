@@ -72,13 +72,26 @@ class UI {
         cameraVideo.id = 'camera';
         cameraVideo.autoplay = true;
         cameraVideo.muted = true;
+        cameraVideo.playsInline = true;
         videoContainer.replaceChild(cameraVideo, shareCamera);
         cameraVideo.srcObject = stream;
         cameraVideo.play();
 
-        cameraVideo.addEventListener('dblclick', function (e) {
-          cameraVideo.classList.toggle('invert'); // FIXME: facingMode api doesn't work
-        });                                       // so we're using this temporary hack
+        //cameraVideo.addEventListener('dblclick', function (e) {
+        //  cameraVideo.classList.toggle('invert'); // FIXME: facingMode api doesn't work
+        //});                                       // so we're using this temporary hack
+        
+        let timer = null; // custom double click, because iOS refuses to handle dblclick
+        cameraVideo.addEventListener('click', function (e) { // properly and zooms instead
+          if (timer) {
+            window.clearTimeout(timer);
+            timer = null;
+            cameraVideo.classList.toggle('invert'); // FIXME: facingMode api doesn't work
+                                                    // so we're using this temporary hack
+          } else timer = setTimeout(function() { 
+            timer = null;
+          }, 500);
+        });
 
         console.log('got stream %o', stream)
         connectButton.disabled = false;
@@ -98,6 +111,7 @@ class UI {
         screenVideo.id = 'screen';
         screenVideo.autoplay = true;
         screenVideo.muted = true;
+        screenVideo.playsInline = true;
         videoContainer.replaceChild(screenVideo, shareScreen);
         screenVideo.srcObject = stream
         screenVideo.play();
@@ -126,8 +140,8 @@ class UI {
         alert('Connected!');
         break;
       case 'disconnected':
-        await ui.beep();
-        alert('Disconnected! Your proctor has been notified.');
+        await this.beep();
+        //alert('Disconnected! Your proctor has been notified.');
         document.querySelector('#disconnect').click();
         break;
     }
@@ -139,7 +153,7 @@ class UI {
   }
 
   handleGetUserMediaError(err) {
-    reportError(err);
+    //reportError(err);
     console.log('error: ' + err);
     switch(err.name) {
       case 'NotFoundError':
