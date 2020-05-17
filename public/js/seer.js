@@ -69,6 +69,21 @@ class UI {
         p.classList.remove('highlight');
       }
     });
+
+    // collapsible online users
+    let onlineUsersContainer = document.querySelector('#online-users-container');
+    let onlineUsers = document.querySelector('#online-users');
+    onlineUsersContainer.addEventListener("click", function() {
+      let icon = onlineUsersContainer.querySelector('i');
+      icon.classList.toggle('la-chevron-circle-left');
+      icon.classList.toggle('la-chevron-circle-down');
+      onlineUsers.classList.toggle("active");
+      if (onlineUsers.style.maxHeight){
+        onlineUsers.style.maxHeight = null;
+      } else {
+        onlineUsers.style.maxHeight = onlineUsers.scrollHeight + "px";
+      }
+    });
   }
 
   setUsername(username) {
