@@ -6,8 +6,11 @@
   <h1 class="title"><%= sessionName %></h1>
   <div id="accounts-card" class="card">
     <h2>Accounts</h2>
-    <button id="sync-accounts" class="icon btn"><i class="las la-sync la-lg"></i>Sync</button>
-    <ul id="accounts"></ul>
+    <div class="controls">
+      <button id="sync-accounts" class="icon btn"><i class="las la-sync la-lg"></i>Sync</button>
+      <button id="edit-accounts" class="icon btn"><i class="las la-edit la-lg"></i>Edit</button>
+    </div>
+    <textarea id="accounts" rows="10" readonly></textarea>
   </div>
 </main>
 
