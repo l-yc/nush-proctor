@@ -184,7 +184,8 @@ class Student {
     let s = document.createElement('div');
     s.classList.add('student');
 
-    s.innerHTML = `<p class="student-info">${this.username}</p>
+    s.innerHTML = 
+      `<p class="student-info">${this.username}</p>
       <button class="talk btn">
         <i class="las la-microphone-slash la-lg"></i>
         <span class="text">muted</button>
@@ -242,7 +243,25 @@ class Student {
 
       conn.video.push(remoteVideo);
 
-      this.DOMContainer.appendChild(remoteVideo);
+      //this.DOMContainer.appendChild(remoteVideo);
+
+      let div = document.createElement('div');
+      div.classList.add('video-wrapper');
+      div.innerHTML = `<span class="minimise-button"><i class="las la-minus-square la-lg"></i></span>`
+      div.appendChild(remoteVideo);
+
+      let button = div.childNodes[0];
+      button.addEventListener('click', evt => {
+        let cl = button.childNodes[0].classList;
+        cl.toggle('la-plus-square');
+        cl.toggle('la-minus-square');
+        if (remoteVideo.style.display !== 'none') {
+          remoteVideo.style.display = 'none';
+        } else {
+          remoteVideo.style.display = 'initial';
+        }
+      });
+      this.DOMContainer.appendChild(div);
     };
 
     conn.destructionCallback = () => new Promise(async (resolve, reject) => {
