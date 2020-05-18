@@ -2,5 +2,16 @@
   padding: 32px;
   #accounts-card {
     padding: 8px 16px;
+    display: flex;
+    flex-flow: column nowrap;
+
+    #accounts {
+      resize: vertical;
+    }
+
+    #accounts[contenteditable] {
+      border: solid 1px palette(theme);
+      box-shadow: 0 0 2px 0 palette(theme);
+    }
   } 
 }
