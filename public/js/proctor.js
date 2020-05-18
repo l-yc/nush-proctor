@@ -48,7 +48,7 @@ class UI {
       shareCamera.disabled = true;
       shareScreen.disabled = true;
       disconnectButton.disabled = false;
-      pingButton.disabled = false;
+      //pingButton.disabled = false; // don't enabled this yet until we connect
       this.call();
     });
 
@@ -144,18 +144,18 @@ class UI {
     let connectionStateIndicator = document.querySelector('#connection-state');
     connectionStateIndicator.innerHTML = `Status: <strong>${connectionState}</strong>`;
 
+    let connectButton = document.querySelector('#connect');
+    let disconnectButton = document.querySelector('#disconnect');
+    let pingButton = document.querySelector('#ping');
+    let videoContainer = document.querySelector('#video-container');
+    let shareCamera = document.getElementById('share-camera');
+    let shareScreen = document.getElementById('share-screen');
     switch (connectionState) {
       case 'connected':
+        pingButton.disabled = false;
         alert('Connected!');
         break;
       case 'disconnected':
-        let connectButton = document.querySelector('#connect');
-        let disconnectButton = document.querySelector('#disconnect');
-        let pingButton = document.querySelector('#ping');
-        let videoContainer = document.querySelector('#video-container');
-        let shareCamera = document.getElementById('share-camera');
-        let shareScreen = document.getElementById('share-screen');
-
         connectButton.disabled = false;
         if (shareCamera) shareCamera.disabled = false;
         if (shareScreen) shareScreen.disabled = false;

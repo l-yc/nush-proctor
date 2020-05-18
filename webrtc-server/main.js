@@ -212,7 +212,7 @@ module.exports = function(server, sessionMiddleware) {
     socket.on('ping proctor', function(data) {
       console.log('Pinging proctor...');
       let to = getReceipient(socket.id, null); // slight abuse of the function
-      if (!to.socket) return; // not a student
+      if (!to.socket) return; // not a student or seer not available
       socket.to(to.socket).emit('student ping', {
         from: {
           socket: socket.id,
