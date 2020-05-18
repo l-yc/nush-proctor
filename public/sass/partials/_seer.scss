@@ -73,10 +73,29 @@
         flex-flow: row wrap;
         justify-content: space-around;
 
-        video {
-          width: calc(24vw - 1em);
-          height: calc((24vw - 1em) * 9/16);
-          margin: 0.3em;
+        .video-wrapper {
+          position: relative;
+          min-width: 32px;
+          min-height: 32px;
+
+          .minimise-button {
+            background-color: none;
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            color: palette(theme);
+
+            &:hover {
+              cursor: pointer;
+              color: palette(alert);
+            }
+          }
+
+          video {
+            width: calc(24vw - 1em);
+            height: calc((24vw - 1em) * 9/16);
+            margin: 0.3em;
+          }
         }
       }
     }
