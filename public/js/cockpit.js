@@ -5,7 +5,9 @@ function showAccounts(accounts) {
   let ta = document.querySelector('#accounts');
   ta.value = '';
   accounts.forEach(a => {
-    ta.value += a.role.join('; ') + ': ' + a.username + '; ' + a.password + '; ' + a.assignedProctor + '\n';
+    ta.value += a.role.join('; ') + ': ' + a.username + '; ' + a.password;
+    if (a.assignedProctor) ta.value += '; ' + a.assignedProctor;
+    ta.value += '\n';
   });
 }
 

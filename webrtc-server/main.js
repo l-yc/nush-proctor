@@ -36,7 +36,7 @@ function getIceServers(name) {
 async function fetchUserWithProctor(userId) {
   return new Promise((resolve, reject) => {
     User.findById(userId, function(err, _user) {
-      //console.log('got user %s %o %s %s', userId, _user, userId, socket.id);
+      //console.log('got user %s %o err %o', userId, _user, err);
       if (err) reject(err);
       else if (!_user) reject('cannot find user');
       else {
@@ -47,8 +47,8 @@ async function fetchUserWithProctor(userId) {
         };
 
         if (_user.assignedProctor) {
-          User.findOne({ username: _user.assignedProctor }, function(err, __user) {
-            if (err) reject(err);
+          User.findOne({ username: _user.assignedProctor }, function(_err, __user) {
+            if (_err) reject(_err);
             if (!__user) reject(err);
             user.seer = {
               id: __user._id
@@ -147,11 +147,11 @@ module.exports = function(server, sessionMiddleware) {
       console.log(socket.id, userId, 'connected');
 
       fetchUserWithProctor(userId).then(_user => {
+        console.log('fetched user %o', _user);
         user = _user;
         registerUser(socket, user);
-      })
-      .catch(err => {
-        console.log(err);
+      }).catch(err => {
+        console.log('error %o', err);
         socket.disconnect();
       });
     });
