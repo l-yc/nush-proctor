@@ -1,5 +1,27 @@
 let dbConfig = global.config.db;
 
+function parseLine(accounts, line) {
+  /**
+   * FORMAT (<roles>:<account details>)
+   * admin: <username>; <password>; 
+   * proctor; admin: <username>; <password>; 
+   * proctor: <username>; <password>; 
+   * student: <username>; <password>; <assignedProctor>
+   */
+
+  let res = line.match('^(.+?):\\s*(.+?);\\s*(.+?)(;\\s*(.+))?$');
+  const crypto = require("crypto");
+  const id = crypto.randomBytes(16).toString("hex");
+
+  accounts.push({
+    _id: id,
+    role: res[1].split(';').map(item => item.trim()), // support a list of roles
+    username: res[2],
+    password: res[3],
+    assignedProctor: res[5]
+  });
+}
+
 function loadAccounts() {
   let accounts = [];
   return new Promise((resolve, reject) => {
@@ -10,27 +32,7 @@ function loadAccounts() {
       input: fs.createReadStream(dbConfig.url)
     });
 
-    rl.on('line', (line) => {
-      /**
-       * FORMAT (<roles>:<account details>)
-       * admin: <username>; <password>; 
-       * proctor; admin: <username>; <password>; 
-       * proctor: <username>; <password>; 
-       * student: <username>; <password>; <assignedProctor>
-       */
-
-      let res = line.match('^(.+?):\\s*(.+?);\\s*(.+?)(;\\s*(.+))?$');
-      const crypto = require("crypto");
-      const id = crypto.randomBytes(16).toString("hex");
-
-      accounts.push({
-        _id: id,
-        role: res[1].split(';').map(item => item.trim()), // support a list of roles
-        username: res[2],
-        password: res[3],
-        assignedProctor: res[5]
-      });
-    });
+    rl.on('line', (line) => parseLine(accounts, line));
 
     rl.on('close', () => {
       console.log('Loaded all accounts.');
@@ -39,14 +41,23 @@ function loadAccounts() {
   });
 }
 
+function setAccounts(accounts) {
+  const fs = require('fs').promises;
+  return fs.writeFile(dbConfig.url, accounts, 'utf8');
+}
+
 exports.connect = function() {
   return loadAccounts().then(_accounts => {
     exports.collections = {
       accounts: _accounts
     }
 
-    console.log(_accounts);
-    return {}; // TODO: temporary connection object
+    //console.log(_accounts);
+    exports.connection = {
+      setAccounts: setAccounts
+    }; // TODO: temporary connection object
+
+    return exports.connection;
   });
 }
 

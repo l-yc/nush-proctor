@@ -32,7 +32,6 @@ module.exports = function(passport, acl) {
   middleware.checkPermission = function(permission) { // quick and dirty ACL
     return function(req, res, next) {
       let userId = middleware.getUserId(req, res);
-
       User.findById(userId, function(err, user) {
         switch (permission) {
           case 'restricted':
