@@ -1,7 +1,7 @@
 let dbConfig = global.config.db;
 
 // This WILL throw an error if there is one.
-function parseLine(accounts, line) {
+function parseLine(line) {
   /**
    * FORMAT (<roles>:<account details>)
    * admin: <username>; <password>; 
@@ -15,13 +15,13 @@ function parseLine(accounts, line) {
   //const id = crypto.randomBytes(16).toString("hex");
   const id = crypto.createHash('md5').update(line).digest('hex'); // FIXME consistent hash for unmodified user. Good idea?
 
-  accounts.push({
+  return {
     _id: id,
     role: res[1].split(';').map(item => item.trim()), // support a list of roles
     username: res[2],
     password: res[3],
     assignedProctor: res[5]
-  });
+  };
 }
 
 function loadAccounts() {
@@ -37,7 +37,7 @@ function loadAccounts() {
     rl.on('line', (line) => {
       try {
         console.log('parsing line');
-        parseLine(accounts, line)
+        accounts.push(parseLine(line));
       } catch (err) {
         console.log(err);
         reject(err);
@@ -51,9 +51,24 @@ function loadAccounts() {
   });
 }
 
+function checkAccounts(accounts) {
+  return new Promise((resolve, reject) => {
+    accounts.split(/\r?\n/).forEach((line) => {
+      try {
+        console.log('parsing line');
+        parseLine(line);
+      } catch (err) {
+        reject(err);
+      }
+    })
+    resolve();
+  });
+}
+
 function setAccounts(accounts) {
   const fs = require('fs').promises;
-  return loadAccounts(accounts).then(() => { // if we can't load, then it's invalid
+  return checkAccounts(accounts).then(() => {
+    console.log('succeed in loading saved accounts');
     return fs.writeFile(dbConfig.url, accounts, 'utf8');
   });
 }
