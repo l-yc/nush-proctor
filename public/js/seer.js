@@ -131,6 +131,7 @@ socket.on('connect', () => {
 });
 
 socket.on('disconnect', () => {
+  ui.setOnlineUsers([]); // set to null
   console.warn('[PROCTOR] Disconnected from signaling server.');
   alert('You have been disconnected. Please reload the page.');
 });
@@ -265,7 +266,11 @@ class Student {
     };
 
     conn.destructionCallback = () => new Promise(async (resolve, reject) => {
-      await ui.beep();
+      try {
+        await ui.beep();
+      } catch (err) {
+        console.error('[PROCTOR] Error playing beep: %o', err);
+      }
       console.warn('[PROCTOR] %s has disconnected a remote stream.', this.username);
       //alert(this.username + ' has disconnected a stream.');
 

@@ -45,10 +45,9 @@ function loadAccounts() {
 
     rl.on('line', (line) => {
       try {
-        console.log('parsing line');
         accounts.push(parseLine(line));
       } catch (err) {
-        console.log(err);
+        console.log('Error parsing line: %o', err);
         reject(err);
       }
     });
