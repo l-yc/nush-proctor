@@ -162,13 +162,13 @@ class UI {
         disconnectButton.disabled = true;
         pingButton.disabled = true;
 
-        //await this.beep();
         this.beep().then(() => {
           fakeconsole.log('success');
         }).catch(err => {
           fakeconsole.reportError(err);
+        }).finally(() => {
+          alert('Disconnected! Your proctor has been notified.');
         });
-        alert('Disconnected! Your proctor has been notified.');
         break;
     }
   }
