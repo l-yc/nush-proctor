@@ -38,7 +38,7 @@ module.exports = function(middleware) {
       res.status(200).json({ success: true });
     }).catch(err => {
       console.log(err);
-      res.status(500).json({ success: false, error: 'Failed to update accounts.' });
+      res.status(500).json({ success: false, error: err });
     });
   });
 
