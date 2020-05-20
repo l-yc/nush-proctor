@@ -1,5 +1,6 @@
 let dbConfig = global.config.db;
 
+// This WILL throw an error if there is one.
 function parseLine(accounts, line) {
   /**
    * FORMAT (<roles>:<account details>)
@@ -10,8 +11,9 @@ function parseLine(accounts, line) {
    */
 
   let res = line.match('^(.+?):\\s*(.+?);\\s*(.+?)(;\\s*(.+))?$');
-  const crypto = require("crypto");
-  const id = crypto.randomBytes(16).toString("hex");
+  const crypto = require('crypto');
+  //const id = crypto.randomBytes(16).toString("hex");
+  const id = crypto.createHash('md5').update(line).digest('hex'); // FIXME consistent hash for unmodified user. Good idea?
 
   accounts.push({
     _id: id,
@@ -32,7 +34,15 @@ function loadAccounts() {
       input: fs.createReadStream(dbConfig.url)
     });
 
-    rl.on('line', (line) => parseLine(accounts, line));
+    rl.on('line', (line) => {
+      try {
+        console.log('parsing line');
+        parseLine(accounts, line)
+      } catch (err) {
+        console.log(err);
+        reject(err);
+      }
+    });
 
     rl.on('close', () => {
       console.log('Loaded all accounts.');
@@ -43,7 +53,9 @@ function loadAccounts() {
 
 function setAccounts(accounts) {
   const fs = require('fs').promises;
-  return fs.writeFile(dbConfig.url, accounts, 'utf8');
+  return loadAccounts(accounts).then(() => { // if we can't load, then it's invalid
+    return fs.writeFile(dbConfig.url, accounts, 'utf8');
+  });
 }
 
 exports.connect = function() {

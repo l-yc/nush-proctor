@@ -36,7 +36,7 @@ function syncAccounts() {
   }).then(response => {
     console.log(response);
     showAccounts(response.users);
-    alert('You have been logged out. Please re-login.');
+    alert('All modified users have been logged out. Please re-login if you are affected.');
   }).catch(err => {
     console.log(err);
     alert('Failed to sync accounts.');
