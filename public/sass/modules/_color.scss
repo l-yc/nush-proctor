@@ -4,6 +4,7 @@ $background-color: #fff;
 $text-color: $theme-secondary-color;
 
 $alert-color: #f93f31;
+$disabled-color: #d1d1d1;
 
 $palette: (
   theme: $theme-color,
@@ -12,7 +13,8 @@ $palette: (
   background-dark: mix($background-color, #000, 90%),
   text: $text-color,
   text-light: mix($text-color, #fff, 30%),
-  alert: $alert-color
+  alert: $alert-color,
+  disabled: $disabled-color
 );
 
 @function palette($name: transparent) {

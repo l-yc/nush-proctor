@@ -10,18 +10,27 @@ function parseLine(line) {
    * student: <username>; <password>; <assignedProctor>
    */
 
-  let res = line.match('^(.+?):\\s*(.+?);\\s*(.+?)(;\\s*(.+))?$');
-  const crypto = require('crypto');
-  //const id = crypto.randomBytes(16).toString("hex");
-  const id = crypto.createHash('md5').update(line).digest('hex'); // FIXME consistent hash for unmodified user. Good idea?
+  try {
+    let res = line.match('^(.+?):\\s*(.+?);\\s*(.+?)(;\\s*(.+))?$');
+    const crypto = require('crypto');
+    //const id = crypto.randomBytes(16).toString("hex");
+    const id = crypto.createHash('md5').update(line).digest('hex'); // FIXME consistent hash for unmodified user. Good idea?
 
-  return {
-    _id: id,
-    role: res[1].split(';').map(item => item.trim()), // support a list of roles
-    username: res[2],
-    password: res[3],
-    assignedProctor: res[5]
-  };
+    let acc = {
+      _id: id,
+      role: res[1].split(';').map(item => item.trim()), // support a list of roles
+      username: res[2],
+      password: res[3],
+      assignedProctor: res[5]
+    };
+    return acc;
+  } catch (err) {
+    console.log(err);
+    throw {
+      name: 'SyntaxError',
+      message: 'Invalid format. Accounts must be given as "<role1>; ... ;<roleN>: <username>; <password>; [<proctor>]".'
+    };
+  }
 }
 
 function loadAccounts() {
@@ -53,14 +62,34 @@ function loadAccounts() {
 
 function checkAccounts(accounts) {
   return new Promise((resolve, reject) => {
+    let lst = [];
     accounts.split(/\r?\n/).forEach((line) => {
-      try {
-        console.log('parsing line');
-        parseLine(line);
-      } catch (err) {
-        reject(err);
+      if (line) {
+        try {
+          lst.push(parseLine(line));
+        } catch (err) {
+          reject(err);
+        }
       }
-    })
+    });
+
+    // validation...json errors are probably not the best.
+    lst.forEach((acc) => {
+      if (acc.role.length == 0) reject({ name: 'LogicError', message: `User ${acc.username} must have a role.` });
+      acc.role.forEach(r => {
+        if (r === 'student') {
+          if (!acc.assignedProctor) reject({ name: 'LogicError', message: `Student ${acc.username} must be assigned to a proctor.` });
+          let proc = lst.find(x => x.username === acc.assignedProctor);
+          if (!proc) reject({ name: 'LogicError', message: `Student ${acc.username} is assigned to a proctor (${acc.assignedProctor}) that does not exist.` });
+        } else if (r === 'proctor') {
+          if (acc.assignedProctor) reject({ name: 'LogicError', message: `Proctor ${acc.username} cannot be assigned to a proctor.` });
+        } else if (r === 'admin') {
+          if (acc.assignedProctor) reject({ name: 'LogicError', message: `Admin ${acc.username} cannot be assigned to a proctor.` });
+        } else {
+          reject({ name: 'SyntaxError', message: `${r} assigned to ${acc.username} is not a valid role (student, proctor, or admin).` });
+        }
+      });
+    });
     resolve();
   });
 }

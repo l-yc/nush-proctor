@@ -7,11 +7,21 @@
 
     #accounts {
       resize: vertical;
+      padding: 8px;
     }
 
-    #accounts[contenteditable] {
+    #accounts[readonly] {
+      background-color: palette(disabled);
+    }
+
+    #accounts:not([readonly]) {
       border: solid 1px palette(theme);
       box-shadow: 0 0 2px 0 palette(theme);
+    }
+
+    #accounts.error {
+      border: solid 1px palette(alert);
+      box-shadow: 0 0 2px 0 palette(alert);
     }
   } 
 }

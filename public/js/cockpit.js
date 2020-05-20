@@ -35,6 +35,7 @@ function syncAccounts() {
     return response.json();
   }).then(response => {
     console.log(response);
+    if (!response.success) throw Error('Server error');
     showAccounts(response.users);
     alert('All modified users have been logged out. Please re-login if you are affected.');
   }).catch(err => {
@@ -63,10 +64,10 @@ function editAccounts() {
   let ta = document.querySelector('#accounts');
   let edit = document.querySelector('#edit-accounts');
   let cl = edit.childNodes[0].classList;
-  cl.toggle('la-edit');
-  cl.toggle('la-save');
 
   if (ta.readOnly) {
+    cl.toggle('la-edit');
+    cl.toggle('la-save');
     ta.readOnly = false;
     edit.childNodes[1].nodeValue = 'Save';
   } else {
@@ -74,8 +75,18 @@ function editAccounts() {
       accounts: ta.value
     }).then((response) => {
       console.log(response);
-      ta.readOnly = true;
-      edit.childNodes[1].nodeValue = 'Edit';
+      if (!response.success) {
+        let err = response.error;
+        console.log(err);
+        alert(`${err.name}: ${err.message}`);
+        if (!ta.classList.contains('error')) ta.classList.add('error');
+      } else {
+        cl.toggle('la-edit');
+        cl.toggle('la-save');
+        ta.readOnly = true;
+        edit.childNodes[1].nodeValue = 'Edit';
+        if (ta.classList.contains('error')) ta.classList.remove('error');
+      }
     }).catch(err => {
       console.log(err);
       alert('Failed to update accounts: ' + err);
