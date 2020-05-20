@@ -250,6 +250,11 @@ node init.js
 
 ### Changelog
 
+* v0.2.0
+  * UI Enhancements
+  * Improved error handling
+  * Admin Cockpit
+  * Proctor pinging
 * v0.1.0
   * Student Login
   * Student Proctor Mapping
