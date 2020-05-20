@@ -241,14 +241,14 @@ class Student {
       //remoteVideo.load(); 
       remoteVideo.srcObject = stream;
 
-      conn.video.push(remoteVideo);
-
       //this.DOMContainer.appendChild(remoteVideo);
 
       let div = document.createElement('div');
       div.classList.add('video-wrapper');
       div.innerHTML = `<span class="minimise-button"><i class="las la-minus-square la-lg"></i></span>`
       div.appendChild(remoteVideo);
+
+      conn.video.push(div);
 
       let button = div.childNodes[0];
       button.addEventListener('click', evt => {
