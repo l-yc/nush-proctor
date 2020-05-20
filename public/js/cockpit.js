@@ -47,7 +47,7 @@ function syncAccounts() {
  * accounts: JSON object with 'accounts' key
  */
 function updateAccounts(accounts) {
-  fetch('api/v1.0/accounts/update',{
+  return fetch('api/v1.0/accounts/update',{
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -56,11 +56,6 @@ function updateAccounts(accounts) {
   }).then(response => {
     console.log(response);
     return response.json();
-  }).then(response => {
-    console.log(response);
-  }).catch(err => {
-    console.log(err);
-    alert('Failed to update accounts.');
   });
 }
 
@@ -75,10 +70,15 @@ function editAccounts() {
     ta.readOnly = false;
     edit.childNodes[1].nodeValue = 'Save';
   } else {
-    ta.readOnly = true;
-    edit.childNodes[1].nodeValue = 'Edit';
     updateAccounts({
       accounts: ta.value
+    }).then((response) => {
+      console.log(response);
+      ta.readOnly = true;
+      edit.childNodes[1].nodeValue = 'Edit';
+    }).catch(err => {
+      console.log(err);
+      alert('Failed to update accounts: ' + err);
     });
   }
 }
