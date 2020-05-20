@@ -85,7 +85,7 @@ db.connect().then(connection => {
     res.render('error');
   });
 }).catch(err => {
-  debug('Failed to connect to database: ' + err);
+  console.log('Failed to connect to database: %o', err);
   return;
 });
 
