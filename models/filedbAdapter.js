@@ -44,11 +44,14 @@ function loadAccounts() {
     });
 
     rl.on('line', (line) => {
-      try {
-        accounts.push(parseLine(line));
-      } catch (err) {
-        console.log('Error parsing line: %o', err);
-        reject(err);
+      line = line.trim();
+      if (line) {
+        try {
+          accounts.push(parseLine(line));
+        } catch (err) {
+          console.log('Error parsing line: %o', err);
+          reject(err);
+        }
       }
     });
 
