@@ -84,6 +84,15 @@ class UI {
         onlineUsers.style.maxHeight = onlineUsers.scrollHeight + "px";
       }
     });
+
+    // video slider controls
+    // Update the current slider value (each time you drag the slider handle)
+    let main = document.querySelector('main');
+    let slider = document.querySelector('#videoSize');
+    slider.addEventListener('change', function(){
+      if (slider.value)
+      main.style.setProperty('--video-size', slider.value + 'vw');
+    });
   }
 
   setUsername(username) {

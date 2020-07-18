@@ -88,7 +88,7 @@
 
       .video-container {
         display: flex;
-        max-width: 49vw;
+        max-width: min(100vw, calc(var(--video-size)*2 + 8px));
         flex-flow: row wrap;
         justify-content: space-around;
 
