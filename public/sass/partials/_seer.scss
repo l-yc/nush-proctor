@@ -1,4 +1,6 @@
 #seer {
+  --video-size: 24vw;
+
   #signaling-state {
     text-align: center;
   }
@@ -47,7 +49,24 @@
     }
   }
 
+  #interface-controls {
+    display: flex;
+    justify-content: center;
+    padding: 8px;
+
+    label {
+      padding: 0 8px;
+    }
+
+    .slider {
+      width: 256px;
+      height: 18px;
+    }
+  }
+
   #student-container {
+    margin-top: 16px;
+
     display: flex;
     max-width: 100%;
     flex-flow: row wrap;
@@ -93,8 +112,8 @@
           }
 
           video {
-            width: calc(24vw - 1em);
-            height: calc((24vw - 1em) * 9/16);
+            width: calc(var(--video-size) - 1em);
+            height: calc((var(--video-size) - 1em) * 9/16);
             margin: 0.3em;
           }
         }
