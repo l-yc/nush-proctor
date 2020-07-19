@@ -90,7 +90,6 @@ class UI {
     let main = document.querySelector('main');
     let slider = document.querySelector('#videoSize');
     slider.addEventListener('change', function(){
-      if (slider.value)
       main.style.setProperty('--video-size', slider.value + 'vw');
     });
   }
