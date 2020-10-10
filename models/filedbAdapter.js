@@ -3,32 +3,34 @@ let dbConfig = global.config.db;
 // This WILL throw an error if there is one.
 function parseLine(line) {
   /**
-   * FORMAT (<roles>:<account details>)
-   * admin: <username>; <password>; 
-   * proctor; admin: <username>; <password>; 
+   * FORMAT (<roles>; <login details>; [<proctor>])
+   * Below are some example entries:
+   * admin; <username>; <password>; 
+   * proctor, admin; <username>; <password>; 
    * proctor: <username>; <password>; 
    * student: <username>; <password>; <assignedProctor>
    */
 
   try {
-    let res = line.match('^(.+?):\\s*(.+?);\\s*(.+?)(;\\s*(.+))?$');
+    let res = line.match('^(.+?);\\s*(.+?);\\s*(.+?)(;\\s*(.+))?$');
     const crypto = require('crypto');
     //const id = crypto.randomBytes(16).toString("hex");
     const id = crypto.createHash('md5').update(line).digest('hex'); // FIXME consistent hash for unmodified user. Good idea?
 
     let acc = {
       _id: id,
-      role: res[1].split(';').map(item => item.trim()), // support a list of roles
+      role: res[1].split(',').map(item => item.trim()), // support a list of roles
       username: res[2],
       password: res[3],
       assignedProctor: res[5]
     };
+    console.log(acc);
     return acc;
   } catch (err) {
     console.log(err);
     throw {
       name: 'SyntaxError',
-      message: 'Invalid format. Accounts must be given as "<role1>; ... ;<roleN>: <username>; <password>; [<proctor>]".'
+      message: 'Invalid format. Accounts must be given as "<role1>, ... ,<roleN>; <username>; <password>; [<proctor>]".'
     };
   }
 }

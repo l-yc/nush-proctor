@@ -141,3 +141,6 @@ tags
 *.srl
 *.crt
 *.csr
+
+public/css/
+deploy/
