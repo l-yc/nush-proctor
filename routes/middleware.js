@@ -5,7 +5,7 @@ var User = require('../models/db').models.UserHelper.model;
 
 //var Token = require('../models/token').model;
 
-var debug = require('debug')('parangninja:routes:middleware.js');
+var debug = require('debug')('proctor:routes:middleware.js');
 
 module.exports = function(passport, acl) {
   middleware = {};
