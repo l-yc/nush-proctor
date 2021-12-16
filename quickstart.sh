@@ -29,4 +29,4 @@ podman run -dit \
     --name seer \
     -v $(pwd)/deploy:/usr/src/app/deploy:Z \
     --env DEBUG=proctor:* \
-    proctor
+    quay.io/l_yc/proctor:latest
