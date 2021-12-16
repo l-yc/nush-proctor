@@ -1,7 +1,6 @@
 // imports
 var express = require('express');
 var createError = require('http-errors');
-var cookieParser = require('cookie-parser');
 
 var session = require('express-session')
 var MemoryStore = require('memorystore')(session)
@@ -20,12 +19,12 @@ var app = express();
 var db = require('./models/db');
 
 let sessionMiddleware = session({
-  cookie: { secure: true },
+  // cookie: { secure: true }, // will only work with https if uncommented
   key: 'express.sid',
   resave: false,
   secret: global.config.sessionSecret,
   saveUninitialized: false,
-  store: new MemoryStore({
+  store: new MemoryStore({ // FIXME: use something that won't leak
     checkPeriod: 86400000 // prune expired entries every 24h
   }),
   unset: 'destroy'
@@ -43,6 +42,8 @@ db.connect().then(connection => {
   passport.serializeUser(db.serializeUser);
   passport.deserializeUser(db.deserializeUser);
 
+  app.use(require('cookie-parser')());
+  app.use(require('body-parser').urlencoded({ extended: true }));
   app.use(sessionMiddleware);
   app.use(flash());
   app.use(passport.initialize());
@@ -55,7 +56,6 @@ db.connect().then(connection => {
   app.use(logger('dev'));
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
-  app.use(cookieParser());
   app.use(express.static(path.join(__dirname, 'public')));
   //app.use(favicon(path.join(__dirname, 'public', 'favicon.png')))
 
