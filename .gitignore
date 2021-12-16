@@ -135,12 +135,7 @@ tags
 [._]*.un~
 
 ##### Other Stuff
-# Certs
-*.key
-*.pem
-*.srl
-*.crt
-*.csr
 
-public/css/
-deploy/
+public/css
+deploy/config.js
+deploy/accounts.csv
