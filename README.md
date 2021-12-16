@@ -1,4 +1,5 @@
 # Seer
+[![Docker Repository on Quay](https://quay.io/repository/l_yc/seer/status "Docker Repository on Quay")](https://quay.io/repository/l_yc/seer)
 
 A simple web-based e-proctoring app that supports multiple inputs and devices.
 
@@ -11,7 +12,7 @@ You will need `podman` installed.
 Paste the following code into the terminal:
 
 ```shell
-git clone https://github.com/l-yc/nush-proctor
+git clone https://github.com/l-yc/nush-proctor && cd nush-proctor
 cd deploy
 mv config.example.js config.js
 mv accounts.example.csv accounts.csv
